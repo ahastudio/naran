@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+members = ["core", "app", "tools/quality"]
+
+[workspace.package]
+edition = "2024"
+version = "0.0.1"
+license = "MIT"
+repository = "https://github.com/ahastudio/naran"
+publish = false
+
+# Every warning fails the check (`mise run check` passes `-D warnings`).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# The crates are not published, so their public functions need no
+# `# Errors` or `# Panics` section.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Picked from the nursery group.
+equatable_if_let = "warn"
+needless_collect = "warn"
+or_fun_call = "warn"
+redundant_clone = "warn"
+use_self = "warn"
+# Picked from the restriction group: no hidden panics, no leftovers.
+
+allow_attributes_without_reason = "warn"
+dbg_macro = "warn"
+expect_used = "warn"
+panic = "warn"
+print_stderr = "warn"
+print_stdout = "warn"
+todo = "warn"
+unimplemented = "warn"
+unwrap_used = "warn"
