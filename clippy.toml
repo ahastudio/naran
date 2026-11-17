@@ -1,0 +1,8 @@
+# Tests may stop at the first thing that goes wrong.
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-print-in-tests = true
+allow-unwrap-in-tests = true
+# Function bodies stay short; `tools/quality` also caps them at five
+# statements.
+too-many-lines-threshold = 20

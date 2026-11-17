@@ -1,0 +1,43 @@
+# Rust is read from rust-toolchain.toml.
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
+
+[tools]
+rust = "1.99.1"
+
+[tasks.check]
+description = "Everything that must pass: formatting, lints, docs, coding guide rules, feature specs, tests and coverage"
+depends = ["format", "lint", "docs", "quality", "python", "specs", "coverage"]
+
+[tasks.format]
+description = "Fails when a file is not formatted with rustfmt"
+run = "cargo fmt --all --check"
+
+[tasks.lint]
+description = "Clippy over every target; every warning fails"
+run = "cargo clippy --workspace --all-targets -- -D warnings"
+
+[tasks.docs]
+description = "Builds the docs; a broken link or other warning fails"
+run = "cargo doc --workspace --no-deps --document-private-items"
+env = { RUSTDOCFLAGS = "-D warnings" }
+
+[tasks.quality]
+description = "Fails when code breaks a rule of the coding guide that clippy does not check"
+run = "cargo run --quiet -p quality -- core app tools"
+
+[tasks.python]
+description = "Fails when a function of the Python scripts has more than five lines of code"
+run = "python3 -I scripts/check-python.py"
+
+[tasks.specs]
+description = "Fails when a feature document in specs/ strays from the FBPW templates or names a test that does not exist"
+run = "python3 -I scripts/check-specs.py"
+
+[tasks.coverage]
+description = "Runs every test and fails unless every line, function and region is covered"
+run = "scripts/coverage.sh"
+
+[tasks.audit]
+description = "Checks the dependencies against the RustSec advisories (needs the network)"
+run = "cargo audit"

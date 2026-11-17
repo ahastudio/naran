@@ -1,0 +1,19 @@
+[package]
+name = "quality"
+description = "Checks the rules of the coding guide that clippy does not: short bodies, few parameters, no flags, plain conditions, small files and no copied bodies"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+proc-macro2 = { version = "1.0.107", features = ["span-locations"] }
+quote = "1.0.47"
+syn = { version = "2.0.119", default-features = false, features = ["full", "parsing", "printing", "visit"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true
