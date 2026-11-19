@@ -46,7 +46,25 @@ jobs:
             echo "::endgroup::"
             for pid in $(pgrep -f naran_app- || true); do
               echo "::group::stuck test run: sample of process $pid"
-              sample "$pid" 5 2>&1 | head -400 || true
+              sample "$pid" 5 -file /tmp/stuck.sample.txt >/dev/null 2>&1 || true
+              # Idle watcher threads fill the file. Print only the others, whole.
+              python3 -I - <<'PY'
+          import re
+          threads, current = {}, None
+          for line in open("/tmp/stuck.sample.txt", errors="replace"):
+              found = re.match(r"\s*Thread_\d+", line)
+              if found:
+                  current = line
+                  threads[current] = []
+              elif current is not None:
+                  threads[current].append(line)
+          for head, body in threads.items():
+              text = "".join(body)
+              if "watcher" in text and "workspace" not in text:
+                  continue
+              print(head.rstrip())
+              print("".join(body[:120]))
+          PY
               echo "::endgroup::"
               echo "::group::stuck test run: open files of process $pid"
               lsof -p "$pid" 2>&1 | grep -E 'PIPE|git' | head -60 || true
