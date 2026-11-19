@@ -36,7 +36,28 @@ jobs:
         # The run takes about 5 minutes. Cargo prints the name of a test that
         # runs over 60 seconds, so a hang shows which test it is.
         timeout-minutes: 15
-        run: scripts/coverage.sh
+        # A run that is still going after 8 minutes is stuck. Print the
+        # processes and where the test program is waiting, so the log shows why.
+        run: |
+          (
+            sleep 480
+            echo "::group::stuck test run: processes"
+            ps -axo pid,ppid,etime,stat,command | grep -E 'naran|git' | grep -v grep || true
+            echo "::endgroup::"
+            for pid in $(pgrep -f naran_app- || true); do
+              echo "::group::stuck test run: sample of process $pid"
+              sample "$pid" 5 2>&1 | head -400 || true
+              echo "::endgroup::"
+              echo "::group::stuck test run: open files of process $pid"
+              lsof -p "$pid" 2>&1 | grep -E 'PIPE|git' | head -60 || true
+              echo "::endgroup::"
+            done
+          ) &
+          watch=$!
+          status=0
+          scripts/coverage.sh || status=$?
+          kill "$watch" 2>/dev/null || true
+          exit "$status"
 
   audit:
     runs-on: ubuntu-latest
