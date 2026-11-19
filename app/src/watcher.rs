@@ -65,18 +65,30 @@ impl Watching {
     }
 
     pub fn watch(&mut self, path: &Path) {
-        let mut roots = locked(&self.roots);
-        if roots.iter().any(|root| root.path == path) {
-            return;
-        }
-        if self.watcher.watch(path, RecursiveMode::Recursive).is_ok() {
-            roots.push(Root::new(path));
-        }
+        let watcher = &mut self.watcher;
+        add_root(&self.roots, path, || {
+            watcher.watch(path, RecursiveMode::Recursive).is_ok()
+        });
     }
 
     pub fn unwatch(&mut self, path: &Path) {
         let _ = self.watcher.unwatch(path);
         locked(&self.roots).retain(|root| root.path != path);
+    }
+}
+
+/// Registers `path` as a root once `add` has started watching it.
+///
+/// The lock must not be held while `add` runs. notify waits for its event
+/// thread while it adds a path, and that thread waits for the lock in `route`
+/// whenever a file event arrives: holding it hangs both for good.
+fn add_root(roots: &Mutex<Vec<Root>>, path: &Path, add: impl FnOnce() -> bool) {
+    if locked(roots).iter().any(|root| root.path == path) {
+        return;
+    }
+    if add() {
+        let root = Root::new(path);
+        locked(roots).push(root);
     }
 }
 

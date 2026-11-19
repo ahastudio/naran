@@ -151,3 +151,28 @@ fn debounce_groups_a_burst_and_stops_when_either_side_is_gone() {
     debouncing.join().unwrap();
     drop(sender);
 }
+
+#[test]
+fn a_folder_is_added_while_the_roots_are_unlocked() {
+    // notify waits for its event thread while it adds a path, and that
+    // thread waits for the roots in `route` when a file event arrives, so
+    // the roots must be free while the path is added.
+    let directory = tempfile::tempdir().unwrap();
+    let roots: Mutex<Vec<Root>> = Mutex::default();
+    let mut unlocked = None;
+
+    add_root(&roots, directory.path(), || {
+        unlocked = Some(roots.try_lock().is_ok());
+        true
+    });
+
+    assert_eq!(unlocked, Some(true), "the roots are locked while adding");
+    assert_eq!(locked(&roots).len(), 1);
+
+    // A path that is already there is not added again, and one that could
+    // not be watched is not registered.
+    add_root(&roots, directory.path(), || panic!("added twice"));
+    let other = tempfile::tempdir().unwrap();
+    add_root(&roots, other.path(), || false);
+    assert_eq!(locked(&roots).len(), 1);
+}
