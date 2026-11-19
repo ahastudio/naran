@@ -106,16 +106,46 @@ fn routes_relevant_events_to_their_repository_and_skips_failed_ones() {
 #[test]
 fn the_tick_reports_every_repository_until_nobody_listens() {
     let directory = tempfile::tempdir().unwrap();
-    let roots = roots_of(directory.path());
+    let roots = Arc::new(roots_of(directory.path()));
     let (sender, receiver) = mpsc::channel();
+    let (_stop, stop_signal) = mpsc::channel();
+    let ticking = Ticking {
+        roots: Arc::clone(&roots),
+        sender,
+        stop: stop_signal,
+    };
     let first = thread::scope(|scope| {
-        let ticking = scope.spawn(|| tick(&roots, &sender, Duration::from_millis(1)));
+        let running = scope.spawn(move || ticking.run_every(Duration::from_millis(1)));
         let first = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
         drop(receiver);
-        ticking.join().unwrap(); // returns once the report cannot be sent
+        running.join().unwrap(); // returns once the report cannot be sent
         first
     });
     assert_eq!(first, directory.path());
+}
+
+#[test]
+fn dropping_watching_ends_its_threads_instead_of_leaking_them() {
+    let directory = tempfile::tempdir().unwrap();
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded::<Vec<PathBuf>>();
+    let mut watching = Watching::start(sender).unwrap();
+    watching.watch(directory.path());
+
+    drop(watching);
+
+    // The tick and debounce threads hold the sending side of the reports.
+    // The channel closes only once both ended; a tick thread that sleeps for
+    // `SAFETY_NET` would keep it open. Waits on another thread, so a leak
+    // fails the test after five seconds instead of hanging it.
+    let (closed, waiting) = mpsc::channel();
+    thread::spawn(move || {
+        while futures::executor::block_on(receiver.next()).is_some() {}
+        let _ = closed.send(());
+    });
+    assert!(
+        waiting.recv_timeout(Duration::from_secs(5)).is_ok(),
+        "a thread of the dropped Watching is still running"
+    );
 }
 
 #[test]

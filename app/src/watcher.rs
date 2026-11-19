@@ -52,6 +52,9 @@ impl Root {
 
 pub struct Watching {
     watcher: RecommendedWatcher,
+    /// Dropped with `Watching`, so the periodic tick wakes up and ends at
+    /// once instead of leaking a thread that sleeps for `SAFETY_NET`.
+    _stop: mpsc::Sender<()>,
     roots: Arc<Mutex<Vec<Root>>>,
 }
 
@@ -61,7 +64,12 @@ impl Watching {
         let roots = Roots::default();
         let (sender, receiver) = mpsc::channel();
         thread::spawn(move || debounce(&receiver, &changes));
-        file_watcher(&roots, sender).map(|watcher| Self { watcher, roots })
+        let (stop, stop_signal) = mpsc::channel();
+        file_watcher(&roots, sender, stop_signal).map(|watcher| Self {
+            watcher,
+            _stop: stop,
+            roots,
+        })
     }
 
     pub fn watch(&mut self, path: &Path) {
@@ -119,22 +127,43 @@ type Roots = Arc<Mutex<Vec<Root>>>;
 fn file_watcher(
     roots: &Roots,
     sender: mpsc::Sender<PathBuf>,
+    stop: Receiver<()>,
 ) -> notify::Result<RecommendedWatcher> {
-    let (shared, tracked, ticker) = (Arc::clone(roots), Arc::clone(roots), sender.clone());
+    let (shared, ticker) = (Arc::clone(roots), sender.clone());
+    let ticking = Ticking {
+        roots: Arc::clone(roots),
+        sender: ticker,
+        stop,
+    };
     notify::recommended_watcher(move |result: notify::Result<Event>| {
         route(&shared, &sender, result);
     })
     .inspect(|_watcher| {
-        thread::spawn(move || tick(&tracked, &ticker, SAFETY_NET));
+        thread::spawn(move || ticking.run());
     })
 }
 
-/// Reports every repository again at each interval, until nobody listens.
-fn tick(roots: &Mutex<Vec<Root>>, ticker: &mpsc::Sender<PathBuf>, every: Duration) {
-    loop {
-        thread::sleep(every);
-        if !report_all(roots, ticker) {
-            return;
+/// Reports every repository again at `SAFETY_NET`, until nobody listens or
+/// `stop` is dropped along with `Watching`.
+struct Ticking {
+    roots: Arc<Mutex<Vec<Root>>>,
+    sender: mpsc::Sender<PathBuf>,
+    stop: Receiver<()>,
+}
+
+impl Ticking {
+    fn run(&self) {
+        self.run_every(SAFETY_NET);
+    }
+
+    fn run_every(&self, every: Duration) {
+        loop {
+            if self.stop.recv_timeout(every) != Err(RecvTimeoutError::Timeout) {
+                return;
+            }
+            if !report_all(&self.roots, &self.sender) {
+                return;
+            }
         }
     }
 }
