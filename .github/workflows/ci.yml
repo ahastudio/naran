@@ -8,10 +8,16 @@ on:
 jobs:
   check:
     runs-on: macos-latest
+    # A test that hangs must fail in minutes, not after the 6 hour default.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Install the toolchain of rust-toolchain.toml
         run: rustup show
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # scripts/coverage.sh builds into its own target directory.
+          cache-directories: target/coverage/target
       - name: Format
         run: cargo fmt --all --check
       - name: Lint
@@ -27,13 +33,19 @@ jobs:
       - name: Feature specs
         run: python3 -I scripts/check-specs.py
       - name: Tests and coverage
+        # The run takes about 5 minutes. Cargo prints the name of a test that
+        # runs over 60 seconds, so a hang shows which test it is.
+        timeout-minutes: 15
         run: scripts/coverage.sh
 
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - name: Install cargo-audit
-        run: cargo install cargo-audit --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       - name: Check the dependencies against the RustSec advisories
         run: cargo audit
