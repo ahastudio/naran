@@ -118,7 +118,7 @@ Questions to recover context when resuming work:
 | Question | Answer |
 | -------- | ------ |
 | 1. Which phase is it now? | Phase 4 (done) |
-| 2. What is next? | Nothing open; re-run the listed tests when the commit list code changes |
+| 2. What is next? | None (all done) |
 | 3. What is the goal? | Read a repository's commit history as a branch graph with paging, Go to HEAD, ref buttons and read-only commit picking |
 | 4. What have I learned so far? | See findings.md |
 | 5. What is done? | The feature, its six-step plan, the listed passing tests and these six documents |

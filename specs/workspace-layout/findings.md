@@ -89,4 +89,3 @@ The repository list wraps around at its ends, while the group, commit and file l
 ### Refresh starts no second read while one runs (2026-11-16)
 
 The faded Refresh button ignores clicks while the repositories are being read (`app/src/workspace/chrome.rs`), and `refresh_does_nothing_while_the_repositories_are_being_read` in `app/src/workspace/tests/layout_acceptance.rs` pins it.
-

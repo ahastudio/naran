@@ -14,7 +14,7 @@ Everything about a picked commit is read-only.
 
 ## How it works
 
-### The commit list
+### The Commit List
 
 - The list has the columns Graph, Description, Date, Author and Commit.
 - The graph draws lanes, merges and ref badges; the commit HEAD is on stands out.
@@ -26,12 +26,12 @@ Everything about a picked commit is read-only.
 - The Go to HEAD button scrolls to the HEAD commit and picks it.
 - If HEAD is older than what is loaded, older pages are read until it is found or there are no more.
 
-### Remote branches and All refs
+### Remote Branches and All Refs
 
 - Two toggles under the list switch remote branches and Git's own refs (stash, notes, `refs/original`).
 - The choice is saved in `layout.json`; the older saved form is still readable.
 
-### Picking a commit
+### Picking a Commit
 
 - Clicking a commit, or pressing Up or Down, shows its message, details, refs and changed files.
 - Clicking the Uncommitted changes row brings the Staged and Unstaged lists back.

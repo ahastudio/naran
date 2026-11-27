@@ -122,7 +122,7 @@ Questions to recover context when resuming work. If all five can be answered, wo
 | Question | Answer |
 | -------- | ------ |
 | 1. Which phase is it now? | All four phases are done. |
-| 2. What is next? | Nothing planned; update these files when the feature changes. |
+| 2. What is next? | None (all done) |
 | 3. What is the goal? | Document and test the screen layout, dividers, keyboard, and saving and restoring. |
 | 4. What was learned so far? | See findings.md: the Refresh rule and the wrapping repository list. |
 | 5. What was completed? | The six documents, eight acceptance tests in `app/src/workspace/tests/layout_acceptance.rs`, and the Refresh rule in `app/src/workspace/chrome.rs`. |

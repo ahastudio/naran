@@ -137,7 +137,7 @@ Questions to recover context when resuming work:
 | Question | Answer |
 | -------- | ------ |
 | 1. Which phase are we in? | Phase 4 (all phases done) |
-| 2. What is next? | Keep spec.md, plan.md and the tests in step with the code; run `mise run check` after every change |
+| 2. What is next? | None (all done) |
 | 3. What is the goal? | Show the changes of picked files, working and past, as diff, pictures or stacks |
 | 4. What have we learned? | See findings.md: why the sticky head stays left |
 | 5. What was done? | Spec, plan and notes; 14 window tests added; 74 app and 2 core feature tests pass |

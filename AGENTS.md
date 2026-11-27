@@ -38,7 +38,9 @@ Each feature has a folder `specs/<feature>/` with `README.md`, `spec.md`, `plan.
 - Work in this loop: pick the next task from `tasks.md`; write what you find or decide into `findings.md` at once; tick the task in `tasks.md` when it is done; before a session ends, record where you stopped in `progress.md` and keep its 5-Question Reboot Check true, so a new session can resume from it alone.
 - When you ask an agent to build a feature, say it in this form: "Use `specs/<feature>` and implement it. After each step, update `tasks.md`, `findings.md` and `progress.md` too."
 - Do not merge or rename phases, and do not invent sessions, dates, errors or results.
-- Specs are written in English, one sentence per line.
+- Specs are written in English, one sentence per line. The sub-headings and fixed sentences of the templates are written in English too, and titles use Title Case (Commit History).
+- The next step in `progress.md` and the 5-Question Reboot Check names only what is really left; when nothing is left it says `None (all done)`.
+- Specs hold technical facts only: no instructions, no story of how the work went, no open opinions about the design.
 
 ## The parts of the app
 
