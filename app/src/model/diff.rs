@@ -164,9 +164,17 @@ impl DiffBuilder {
     /// anything else here is a message such as "Binary files differ".
     fn before_hunk(&mut self, index: usize, line: &str) {
         match classify(line) {
-            LineKind::Meta => {}
+            LineKind::Meta => self.meta(index, line),
             LineKind::Added => self.add(index, line),
             _ => self.note(index, line),
+        }
+    }
+
+    /// Header lines are dropped, except where a file was renamed: a rename
+    /// without edits has no hunk, and the note says what the file was.
+    fn meta(&mut self, index: usize, line: &str) {
+        if let Some(old) = line.strip_prefix("rename from ") {
+            self.note(index, &format!("Renamed from {old}"));
         }
     }
 

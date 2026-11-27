@@ -41,6 +41,7 @@ It stages and unstages; it never commits, fetches, pulls or pushes.
 - Pick several files with **Cmd+A**, **Shift** (range) or **Cmd** (one by one), in the working tree and in past commits.
   Their diffs are stacked one after another, and you can drag them together.
 - Untracked and conflicted files can only be staged as a whole.
+- A staged rename shows only the lines that changed, and unstaging lines of it keeps the rename.
 
 ### Keys
 

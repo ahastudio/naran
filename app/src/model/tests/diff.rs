@@ -219,3 +219,19 @@ fn a_context_line_without_its_leading_space_is_kept_as_it_is() {
         }
     );
 }
+
+#[test]
+fn a_rename_says_what_the_file_was_even_when_no_line_changed() {
+    let text =
+        "diff --git a/a.txt b/b.txt\nsimilarity index 100%\nrename from a.txt\nrename to b.txt";
+
+    let rows = diff_rows(&lines(text));
+
+    assert_eq!(
+        rows,
+        [DiffRow::Note {
+            index: 2,
+            text: "Renamed from a.txt".into()
+        }]
+    );
+}

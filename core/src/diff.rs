@@ -27,14 +27,63 @@ impl Staging {
     }
 }
 
+/// The diff of one file. A staged rename is paired with its old path, so
+/// only the lines that changed show, not the whole file as added.
 pub fn file_diff(repository: &Path, file: &str, staging: Staging) -> Result<String, Error> {
+    let paths = diff_paths(repository, file, staging)?;
     let cached = (staging == Staging::Staged).then_some("--cached");
-    let arguments: Vec<&str> = ["diff", "--no-color", "--no-ext-diff"]
+    let options = [
+        "-c",
+        "core.quotePath=false",
+        "diff",
+        "--no-color",
+        "--no-ext-diff",
+        "-M",
+    ];
+    let arguments: Vec<&str> = options
         .into_iter()
         .chain(cached)
-        .chain(["--", file])
+        .chain(["--"])
+        .chain(paths.iter().map(String::as_str))
         .collect();
     git::read(repository, &arguments)
+}
+
+/// The paths a diff of `file` names: for a staged rename also the old one,
+/// because git can only pair the two when it sees both.
+fn diff_paths(repository: &Path, file: &str, staging: Staging) -> Result<Vec<String>, Error> {
+    if staging == Staging::Unstaged {
+        return Ok(vec![file.to_owned()]);
+    }
+    let listing = ["diff", "--cached", "--name-status", "-M", "-z"];
+    let output = git::read(repository, &listing)?;
+    Ok(renamed_from(name_status_entries(&output), file)
+        .into_iter()
+        .chain([file.to_owned()])
+        .collect())
+}
+
+fn renamed_from(entries: Vec<Vec<&str>>, file: &str) -> Option<String> {
+    entries
+        .into_iter()
+        .find_map(|paths| match paths.as_slice() {
+            [old, new] if *new == file => Some((*old).to_owned()),
+            _ => None,
+        })
+}
+
+/// The paths of each entry of `--name-status -z`: one, or two for a rename.
+fn name_status_entries(output: &str) -> Vec<Vec<&str>> {
+    let mut fields = output.split('\0').filter(|field| !field.is_empty());
+    std::iter::from_fn(|| {
+        let count = if fields.next()?.starts_with('R') {
+            2
+        } else {
+            1
+        };
+        Some(fields.by_ref().take(count).collect())
+    })
+    .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

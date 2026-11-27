@@ -93,3 +93,20 @@ fn returns_none_without_a_selection_or_hunks() {
         None
     );
 }
+
+#[test]
+fn a_renamed_file_is_named_by_its_new_path_alone_even_when_git_quotes_it() {
+    let plain = "diff --git a/o b/n\nsimilarity index 90%\nrename from o\nrename to n\n--- a/o\n+++ b/n\n@@ -1 +1 @@\n-a\n+b\n";
+    let quoted = plain.replace("rename to n", "rename to \"t\\tn\"");
+    let index = |diff: &str| diff.split('\n').position(|line| line == "+b").unwrap();
+
+    let patch = build(plain, &[index(plain)], Direction::Forward).unwrap();
+    let other = build(&quoted, &[index(&quoted)], Direction::Forward).unwrap();
+
+    assert!(patch.starts_with("diff --git a/n b/n\n--- a/n\n+++ b/n\n@@"));
+    assert!(
+        other.starts_with(
+            "diff --git \"a/t\\tn\" \"b/t\\tn\"\n--- \"a/t\\tn\"\n+++ \"b/t\\tn\"\n@@"
+        )
+    );
+}

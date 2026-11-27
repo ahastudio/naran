@@ -170,3 +170,34 @@ fn stages_and_unstages_selected_hunks_and_lines() {
         Err(Error::InvalidArgument { .. })
     ));
 }
+
+#[test]
+fn a_staged_rename_shows_only_what_changed_and_its_lines_unstage_without_undoing_the_rename() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = init(directory.path());
+    commit_file(&path, "old.txt", &numbered(&[]), "base");
+    git(&path, &["mv", "old.txt", "한글.txt"]);
+    write(&path, "한글.txt", &numbered(&[(2, "CHANGED")]));
+    git(&path, &["add", "한글.txt"]);
+
+    let diff = naran_core::file_diff(&path, "한글.txt", Staging::Staged).unwrap();
+
+    assert!(diff.contains("+CHANGED") && diff.contains("-line2"));
+    assert!(
+        !diff.contains("+line1"),
+        "unchanged lines are not added lines"
+    );
+    let lines = indexes(&diff, &["-line2", "+CHANGED"]);
+    let picked = ops::LineSelection {
+        file: "한글.txt",
+        staging: Staging::Staged,
+        lines: &lines,
+    };
+    ops::stage_lines(&path, &picked).unwrap();
+    let status = git(&path, &["-c", "core.quotePath=false", "status", "--short"]);
+    assert_eq!(status.trim(), "RM old.txt -> 한글.txt");
+
+    let plain = tempfile::tempdir().unwrap();
+    let unreadable = naran_core::file_diff(plain.path(), "a.txt", Staging::Staged);
+    assert!(matches!(unreadable, Err(Error::Command { .. })));
+}

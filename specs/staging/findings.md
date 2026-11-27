@@ -56,8 +56,12 @@ none
 
 | Decision | Rationale |
 | -------- | --------- |
+| The diff of a staged file is asked for with its old path too, when `git diff --cached -M --name-status` lists it as a rename | Git pairs a rename only when it sees both paths; with the new path alone the whole file shows as added (`core/src/diff.rs`) |
+| A patch made from a rename diff names the new path alone | A rename header would make `git apply --reverse` move the file back instead of undoing some lines (`plain_header` in `core/src/patch.rs`) |
+| Diffs are read with `core.quotePath=false` | A rename header would otherwise quote a non-ASCII name and the patch header would not match it |
 | A renamed file's old path is kept in `Change::original` | The next record of a rename in the status output is its old path (`status::next_entry`) |
 | `new path <- old path` as the row text | One text holds both paths, and the same text names the row for tests (`model::change_label`) |
+| A rename header becomes a note, `Renamed from <old path>`, and the other header lines stay hidden | A rename without edits has no hunk, so the pane was empty; the note is drawn at the left edge like a hunk title, because indented to the code column it was pushed off the pane by a long path (`DiffBuilder::meta` in `app/src/model/diff.rs`, `note_row`) |
 | Unstaging a renamed file includes its old path | Restoring only the new path leaves the old one staged as deleted (`with_origins` in `ops/staging.rs`) |
 | The old path shows only on the side that has the rename | The label follows the badge letter R or C of that list (`model::change_label`) |
 | Commit file lists stay without renames | Their reads use `--no-renames`, so a renamed file is a delete and an add there |

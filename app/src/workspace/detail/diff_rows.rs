@@ -77,7 +77,7 @@ impl DiffLook<'_> {
         div()
             .id((self.id, index))
             .w_full()
-            .pl(self.number_width * 2. + px(18.))
+            .px_3()
             .py_0p5()
             .text_color(self.theme.muted)
             .child(self.selectable(at, text))

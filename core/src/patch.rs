@@ -19,7 +19,35 @@ pub fn build(diff: &str, selected: &[usize], direction: Direction) -> Option<Str
     let hunks: String = hunk_starts(&lines, first_hunk)
         .filter_map(|start| build_hunk(&lines, start..hunk_end(&lines, start), &selection))
         .collect();
-    (!hunks.is_empty()).then(|| format!("{}\n{hunks}", lines[..first_hunk].join("\n")))
+    (!hunks.is_empty()).then(|| format!("{}\n{hunks}", plain_header(&lines[..first_hunk])))
+}
+
+/// The header of the patch. A rename header would make `git apply` move the
+/// file, but only some lines move, so the patch names the new path alone.
+fn plain_header(header: &[&str]) -> String {
+    let renamed = header
+        .iter()
+        .find_map(|line| line.strip_prefix("rename to "));
+    match renamed {
+        Some(path) => renamed_header(path),
+        None => header.join("\n"),
+    }
+}
+
+/// Git quotes a name with a tab, a quote or a backslash in it as a whole, so
+/// `a/` and `b/` go inside the quotes.
+fn renamed_header(path: &str) -> String {
+    let inner = path.trim_matches('"');
+    let quoted = path.starts_with('"');
+    let name = |side: &str| {
+        if quoted {
+            format!("\"{side}/{inner}\"")
+        } else {
+            format!("{side}/{path}")
+        }
+    };
+    let (old, new) = (name("a"), name("b"));
+    format!("diff --git {old} {new}\n--- {old}\n+++ {new}")
 }
 
 /// Which way a patch is applied.

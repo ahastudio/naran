@@ -310,6 +310,27 @@ Scenario 8: **Unstage a rename**
 - Then: the old path is not left staged as deleted; the index is as before the rename
 - Test: `unstaging_a_renamed_file_brings_back_the_old_path`
 
+Scenario 9: **Diff of a staged rename**
+
+- Given: a file was renamed with `git mv` and one line of it was changed before it was staged
+- When: the user opens the file in the Staged list
+- Then: the diff shows only the changed lines, not the whole file as added, and unstaging lines of it keeps the rename staged
+- Test: `a_renamed_file_shows_only_the_lines_that_changed`, `a_staged_rename_shows_only_what_changed_and_its_lines_unstage_without_undoing_the_rename`
+
+Scenario 10: **A rename without edits**
+
+- Given: a file was renamed with `git mv` and not changed
+- When: the user opens the file in the Staged list
+- Then: the diff shows one note, `Renamed from <old path>`, instead of an empty pane; a rename with edits shows the same note above its changed lines
+- Test: `a_rename_without_edits_opens_a_diff_that_says_what_the_file_was`, `a_rename_says_what_the_file_was_even_when_no_line_changed` in `app/src/model/tests/diff.rs`; inner level, the text of the note is made by the model
+
+Scenario 11: **A rename of a name Git quotes**
+
+- Given: a staged rename whose new name has a tab, a quote or a backslash in it, so Git writes it in quotes
+- When: lines of it are staged or unstaged
+- Then: the patch names the new path alone, with `a/` and `b/` inside the quotes
+- Test: `a_renamed_file_is_named_by_its_new_path_alone_even_when_git_quotes_it` in `core/src/patch/tests.rs`; inner level, not reachable through the window
+
 ## Functional Requirements (mandatory)
 
 - FR-1: MUST show changed files in a Staged files list and an Unstaged files list (US5).
