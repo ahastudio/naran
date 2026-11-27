@@ -35,6 +35,7 @@ The repository column header shows the group name and the count, and each row sh
 
 - Dragging a group row onto another group row reorders the group column, and the order is saved.
 - Dragging a repository row reorders it inside its group, and the order is saved.
+- Dragging a repository row onto a group row in the group column moves the repository there: it leaves the group it was dragged from and joins the group it is dropped on. The folder is untouched.
 - The right-click menu of a repository has Reveal in Finder and Remove. Remove takes it out of the group after asking.
 - A repository that is in no group leaves Naran. Its folder is untouched.
 

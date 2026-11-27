@@ -2,7 +2,7 @@
 
 use gpui::{
     AnyElement, App, Context, Div, ElementId, Entity, FontWeight, Hsla, Render, SharedString,
-    Stateful, Window, div, prelude::*, px,
+    Stateful, StyleRefinement, Window, div, prelude::*, px,
 };
 
 use naran_core::Status;
@@ -114,6 +114,11 @@ impl Render for DragPreview {
             .text_color(theme.text)
             .child(self.name.clone())
     }
+}
+
+/// The line over a row that tells a dragged row would land on it.
+pub fn drop_border(style: StyleRefinement, color: Hsla) -> StyleRefinement {
+    style.border_t_2().border_color(color)
 }
 
 /// The preview of a dragged row, named after it.

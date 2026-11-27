@@ -24,7 +24,7 @@ It stages and unstages; it never commits, fetches, pulls or pushes.
 - Drag a group onto another to reorder the groups.
 - Add folders with the button or by dropping them on the window.
   Folders that are not Git repositories are refused with a notice.
-- Drag a repository to reorder it within its group.
+- Drag a repository to reorder it within its group, or onto another group row to move it there.
   Right-click for Reveal in Finder or Remove (the folder is never touched).
 
 ### History

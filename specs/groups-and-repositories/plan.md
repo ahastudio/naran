@@ -14,6 +14,7 @@ The workspace view holds the groups, repositories and selection, saves them as J
 3. Reorder groups and repositories by drag, Reveal in Finder, Remove.
 4. Show counts and state words in both columns.
 5. Restore the last group and repository.
+6. Move a repository to another group by dragging its row onto a group row.
 
 ## Critical Files
 
@@ -25,7 +26,18 @@ The workspace view holds the groups, repositories and selection, saves them as J
 
 ### Modified Files
 
-- `app/src/workspace/tests.rs`: one line that registers the new acceptance test file
+- `app/src/workspace/tests/moving_a_repository_to_another_group_acceptance.rs`: acceptance tests that drive the window for story 7 of spec.md
+
+- `app/src/workspace/tests.rs`: one line that registers the new acceptance test files
+
+### Modified Files For Story 7
+
+- `app/src/workspace/repositories.rs`: the repository row already carries the dragged repository; it also names the group the row is dragged from
+- `app/src/workspace/group_order.rs`: the group row accepts a dragged repository, marks itself as the drop target and calls the move
+- `app/src/workspace/membership.rs`: the action that moves a repository from one group to another, saves, and fixes the selection
+- `app/src/model/settings.rs`: the rule that takes a path out of one group and puts it at the end of another once
+- `app/src/workspace/navigation.rs`: `neighbour`, the row selected after the selected one leaves, and `member_paths` made visible to the workspace
+- `app/src/widgets.rs`: `drop_border`, the border shared by the three drops
 
 ### Reference Files
 
@@ -138,6 +150,15 @@ The last two cover counts and state words, which the window does not expose to t
 
 **Refactoring:** Let tests swap the program so no panel or Finder window opens.
 
+### Step 5: Move a repository to another group (story 7)
+
+**Red:** `moving_a_repository_to_another_group_acceptance.rs` is written first: `dragging_a_repository_row_onto_a_group_row_moves_it_to_that_group`, `a_moved_repository_stays_in_its_new_group_after_a_restart`, `dragging_a_repository_over_a_group_row_marks_the_row`, `moving_the_selected_repository_out_selects_the_next_row` and `a_group_row_dropped_on_a_group_row_still_reorders_and_a_file_row_does_not_move_a_repository`.
+Model tests in `app/src/model/tests/groups.rs` fail first for the rule: `moving_a_repository_to_a_group_that_holds_it_keeps_it_once`, `dropping_a_repository_on_its_own_group_changes_nothing` `moving_a_repository_to_a_missing_group_changes_nothing`, `moving_a_repository_takes_it_out_of_its_group_and_puts_it_last_in_the_target` and `moving_a_repository_the_source_group_does_not_hold_changes_nothing`.
+
+**Green:** The model rule moves the path; the workspace action calls it, saves `settings.json`, keeps the selected group and repairs the selected repository; the group row accepts `DraggedRepository` next to `DraggedGroup`, and the repository drag carries the source group so a drop on that group does nothing.
+
+**Refactoring:** Share the drop-target border with the group reorder so both drags look the same.
+
 ## Verification
 
 ### Build
@@ -160,6 +181,7 @@ mise run check
 1. Create, rename and delete a group.
 2. Add a Git folder and a plain folder together and read the red notice.
 3. Drag a group and a repository row to reorder, quit, reopen, and see both orders and the selection kept.
+4. Drag a repository row onto another group row, see it leave the first group and join the second, quit, reopen, and see it still there.
 
 ## Considerations
 

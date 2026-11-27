@@ -10,13 +10,24 @@ use super::menu::{MenuTarget, open_menu_listener};
 use super::state::Pane;
 use crate::model::Entry;
 use crate::theme::Theme;
-use crate::widgets::{drag_preview, link, repository_row};
+use crate::widgets::{drag_preview, drop_border, link, repository_row};
 
-/// A repository row being dragged to another place in its group.
+/// A repository row being dragged to another place in its group, or onto
+/// another group.
 #[derive(Clone)]
-struct DraggedRepository {
-    path: PathBuf,
-    name: String,
+pub(super) struct DraggedRepository {
+    pub(super) path: PathBuf,
+    pub(super) name: String,
+    /// The group the row is dragged from.
+    pub(super) group: String,
+}
+
+impl DraggedRepository {
+    /// Whether dropping the row on the row of the group `row` moves it: back
+    /// on the group it came from it does not.
+    pub(super) fn moves_onto(&self, row: &str) -> bool {
+        self.group != row
+    }
 }
 
 impl Workspace {
@@ -125,7 +136,10 @@ impl Workspace {
     ) -> Div {
         let path = entry.path().to_path_buf();
         let selected = self.selection.repository.as_deref() == Some(entry.path());
-        let content = repository_content(index, entry, theme, cx);
+        let content = repository_content(index, entry, theme, cx)
+            .on_drag(self.dragged(entry), |dragged, _, _, cx| {
+                drag_preview(&dragged.name, cx)
+            });
         repository_frame(&path, theme, cx)
             .when(selected, |row| row.bg(theme.selected))
             .child(content)
@@ -134,6 +148,14 @@ impl Workspace {
                 MouseButton::Right,
                 open_menu_listener(MenuTarget::Repository(path), cx),
             )
+    }
+
+    fn dragged(&self, entry: &Entry) -> DraggedRepository {
+        DraggedRepository {
+            path: entry.path().to_path_buf(),
+            name: entry.name(),
+            group: self.selection.group.clone().unwrap_or_default(),
+        }
     }
 
     fn repositories_frame(&self) -> Stateful<Div> {
@@ -215,7 +237,7 @@ fn repository_frame(path: &Path, theme: &Theme, cx: &mut Context<Workspace>) -> 
     let (tint, drop_path) = (theme.accent, path.to_path_buf());
     div()
         .group("repository-row")
-        .drag_over::<DraggedRepository>(move |style, _, _, _| style.border_t_2().border_color(tint))
+        .drag_over::<DraggedRepository>(move |style, _, _, _| drop_border(style, tint))
         .on_drop(
             cx.listener(move |this, dragged: &DraggedRepository, _, cx| {
                 this.move_repository(&dragged.path, &drop_path, cx);
@@ -235,14 +257,9 @@ fn repository_content(
     cx: &mut Context<Workspace>,
 ) -> Stateful<Div> {
     let select_path = entry.path().to_path_buf();
-    let dragged = DraggedRepository {
-        path: entry.path().to_path_buf(),
-        name: entry.name(),
-    };
     repository_row(index, entry, theme)
         .flex_1()
         .min_w(px(0.))
-        .on_drag(dragged, |dragged, _, _, cx| drag_preview(&dragged.name, cx))
         .on_click(cx.listener(move |this, _, _, cx| {
             this.select_repository(Some(select_path.clone()), cx);
         }))

@@ -6,7 +6,7 @@ Let the user group repositories, add and tidy them, read their state in two colu
 
 ## Current Phase
 
-✅ Phase 4: Testing
+✅ Phase 4: Testing (all phases are done)
 
 ## Phases
 
@@ -29,15 +29,20 @@ Let the user group repositories, add and tidy them, read their state in two colu
 - [x] Step 2: Workspace - workspace actions and selection
 - [x] Step 3: Model - group rules and state words
 - [x] Step 4: Platform - storage and processes
+- [x] Step 5: Move a repository to another group (story 7)
+  - [x] Red: acceptance tests and model tests for story 7
+  - [x] Green: model rule, workspace action, drop target on the group row, source group on the drag
+  - [x] Refactoring: share the drop-target border with the group reorder
 
 ### Phase 4: Testing ✅
 
 - [x] Confirm the full build
 - [x] Confirm all tests pass
 - [x] Acceptance tests: automated, driven through the window by gpui tests
+- [x] Confirm `mise run check` passes with story 7
 
 ## Notes
 
-- Every spec scenario has a test line; scenarios that had no outermost test got one in `app/src/workspace/tests/groups_and_repositories_acceptance.rs`.
+- Every spec scenario, story 7 included, has a test line that exists. Scenarios that had no outermost test got one in `app/src/workspace/tests/groups_and_repositories_acceptance.rs`.
 - Decisions are in findings.md under Technical Decisions.
 - Problems are in findings.md under Issues Encountered.

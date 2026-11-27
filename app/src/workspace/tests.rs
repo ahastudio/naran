@@ -193,6 +193,7 @@ mod group_order_acceptance;
 mod groups_and_repositories_acceptance;
 mod layout_acceptance;
 mod live_updates_acceptance;
+mod moving_a_repository_to_another_group_acceptance;
 mod renamed_files_acceptance;
 mod staging_acceptance;
 mod staging_diff_acceptance;

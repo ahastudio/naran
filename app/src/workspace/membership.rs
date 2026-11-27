@@ -7,6 +7,7 @@ use gpui::{Context, PromptLevel, Window};
 
 use super::Workspace;
 use super::chrome::folder_name;
+use super::navigation::neighbour;
 use super::reading::read_in_background;
 use super::state::Outcome;
 use crate::model::Entry;
@@ -178,6 +179,32 @@ impl Workspace {
             self.save_settings();
             cx.notify();
         }
+    }
+
+    /// Moves a dragged repository from the group it was dragged from to the
+    /// end of another group. The folder stays where it is, and the selection
+    /// moves on when the selected repository is the one that left.
+    pub(super) fn move_to_group(
+        &mut self,
+        path: &Path,
+        from: &str,
+        to: &str,
+        cx: &mut Context<Self>,
+    ) {
+        let next = neighbour(&self.member_paths(), path);
+        if self.settings.move_to_group(from, path, to) {
+            self.save_settings();
+            self.leave_selection(path, next, cx);
+        }
+    }
+
+    /// Selects `next` when `path`, which left the group, was selected.
+    fn leave_selection(&mut self, path: &Path, next: Option<PathBuf>, cx: &mut Context<Self>) {
+        let selected = self.selection.repository.as_deref();
+        if selected.is_some_and(|selected| self.owner_of(selected).as_deref() == Some(path)) {
+            self.select_repository(next, cx);
+        }
+        cx.notify();
     }
 
     /// Shows the folder in Finder.

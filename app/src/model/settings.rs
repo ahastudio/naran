@@ -109,6 +109,23 @@ impl Settings {
         }
     }
 
+    /// Takes `path` out of the group `from` and puts it at the end of the
+    /// group `to`, which keeps it once. Both groups must exist and `from` must
+    /// hold it. Returns whether anything changed.
+    pub fn move_to_group(&mut self, from: &str, path: &Path, to: &str) -> bool {
+        let moves = from != to && self.holds_in(from, path) && self.group_index(to).is_some();
+        if moves {
+            self.remove_from_group(from, path);
+            self.add_to_group(to, path);
+        }
+        moves
+    }
+
+    fn holds_in(&self, name: &str, path: &Path) -> bool {
+        let found = self.groups.iter().find(|group| group.name == name);
+        found.is_some_and(|group| group.holds(path))
+    }
+
     fn group_index(&self, name: &str) -> Option<usize> {
         self.groups.iter().position(|group| group.name == name)
     }

@@ -10,6 +10,7 @@
 - Show counts and state words in the group and repository columns.
 - Restore the last group and repository.
 - Use a single-line input to name groups.
+- Move a repository to another group by dragging its row onto a group row.
 
 ## Research Findings
 
@@ -40,7 +41,9 @@
 - Create and rename rules: `app/src/model/settings.rs:56`, `app/src/model/settings.rs:69`
 - Reorder rule for repositories: `app/src/model/settings.rs:97`
 - Reorder rule for groups: `app/src/model/settings.rs:104`
-- Group drag and drop, and the move it makes: `app/src/workspace/group_order.rs:18`, `app/src/workspace/group_order.rs:28`
+- Repository drag source: `app/src/workspace/repositories.rs:139`; group drag source: `app/src/workspace/group_order.rs:29`
+- Group drag and drop, and the move it makes: `app/src/workspace/group_order.rs:18`, `app/src/workspace/group_order.rs:29`
+- Repository dropped on a group row: `app/src/workspace/group_order.rs:50`; the action `app/src/workspace/membership.rs:187`; the rule `app/src/model/settings.rs:115`
 - State words: `app/src/model.rs:108`
 - Group edit flow: `app/src/workspace/groups.rs:67`
 - Group delete with confirmation: `app/src/workspace/groups.rs:92`
@@ -68,17 +71,33 @@ none
 | Load falls back to defaults for a missing or broken file | The app still starts (`store::load` doc) |
 | Repositories only exist inside groups; one in no group is dropped | `members` doc and the confirmation texts say a repository left in no group leaves Naran |
 | A dropped group takes the slot of the group it lands on, by the same rule as a repository in a group | One rule explains both drags, and the saved order is the order of `groups` in `settings.json` |
+| A repository dropped on another group row moves: it leaves the group it was dragged from and joins the end of the target group, once | The user decided it is a move and not a copy; there is no copy gesture, and the repository stays in the list because the target group holds it |
+| The repository drag carries the group it came from | A drop on the same group then does nothing, and a repository in two groups leaves only the one it was dragged from |
+| The drag-over border is one shared function, `drop_border` in `widgets.rs` | The group reorder, the repository reorder and the repository-onto-group drop look the same |
 | Ask before deleting a group or removing a repository | The functions are documented "Asks first" |
 | Every error is also a red notice at the top of the repository column | So it cannot be missed (`report` doc) |
 | Draw destructive menu choices in the problem color | So they are not picked by mistake (`menu.rs` comment) |
 
 ## Issues Encountered
 
-### 1. none recorded
-
 none recorded
 
 ## Learnings
+
+### The drop-target border cannot be read in a test (2026-11-24)
+
+GPUI paints `drag_over` styles but gives a test no way to read them.
+The scenario "the row under the pointer tells where it will go" is therefore pinned in two parts: the test drags over the row and asserts the drag is active, and asserts the rule `DraggedRepository::moves_onto` that decides the border.
+The border itself is looked at by hand (plan, Manual Test 4).
+
+### The selection after a move is the neighbour, not the first row (2026-11-24)
+
+Removing a repository selects the group's first row (`visible_selection`), but story 7 says the next row.
+`neighbour` in `navigation.rs` picks the row after the moved one, the row before it when it was last, and nothing when it was alone; it reads the order before the move.
+
+### A file row dropped on a group row goes nowhere (2026-11-24)
+
+The group row accepts only `DraggedGroup` and `DraggedRepository`, so a `DraggedFile` dropped on it does nothing, and the test pins that git status stays unchanged.
 
 ### Group name trimming happens twice (2026-11-16)
 

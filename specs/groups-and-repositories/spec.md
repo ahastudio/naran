@@ -364,6 +364,70 @@ Scenario 5: **Arrow keys through groups**
 - Then: the next group is selected
 - Test: `the_arrow_keys_move_through_the_groups`
 
+### User Story 7: Move a repository to another group by drag
+
+- As: a user who sorted a repository into the wrong group
+- I: drag the repository row onto another group row
+- So: move it without removing and adding the folder again
+
+#### Acceptance Scenarios
+
+Scenario 1: **Drop on another group**
+
+- Given: group `a` holds a repository and group `b` exists, and `a` is selected
+- When: the user drags the repository row onto the row of `b`
+- Then: the repository leaves `a`, joins the end of `b`, and the selection stays on group `a`
+- Test: `moving_a_repository_to_another_group_acceptance::dragging_a_repository_row_onto_a_group_row_moves_it_to_that_group`
+
+Scenario 2: **The folder is untouched and the order is saved**
+
+- Given: a repository was moved to another group
+- When: the app is restarted
+- Then: the saved groups show the new membership, and the repository folder was not changed
+- Test: `moving_a_repository_to_another_group_acceptance::a_moved_repository_stays_in_its_new_group_after_a_restart`
+
+Scenario 3: **Target already holds it**
+
+- Given: the repository is in groups `a` and `b`
+- When: it is dragged from `a` onto `b`
+- Then: it leaves `a` and `b` still holds it once
+- Test: `moving_a_repository_to_a_group_that_holds_it_keeps_it_once`
+
+Scenario 4: **Dropped on its own group**
+
+- Given: the repository is in the selected group
+- When: it is dropped on that same group row
+- Then: nothing changes
+- Test: `dropping_a_repository_on_its_own_group_changes_nothing`
+
+Scenario 5: **Dropped on a name that is not a group**
+
+- Given: a repository is being dragged
+- When: it is dropped on a name that is not in the group list
+- Then: nothing changes and no notice appears
+- Test: `moving_a_repository_to_a_missing_group_changes_nothing`
+
+Scenario 6: **The row under the pointer tells where it will go**
+
+- Given: a repository row is being dragged
+- When: the pointer is over a group row other than the source group
+- Then: that group row is marked as the drop target
+- Test: `dragging_a_repository_over_a_group_row_marks_the_row`
+
+Scenario 7: **Selection after the move**
+
+- Given: the dragged repository was selected
+- When: it is moved out of the selected group
+- Then: the selection moves to the row after it, to the row before it when it was the last, or to nothing when the group is empty
+- Test: `moving_the_selected_repository_out_selects_the_next_row`
+
+Scenario 8: **Not a repository drag**
+
+- Given: a file row or a group row is being dragged
+- When: it is dropped on a group row
+- Then: the repository move does not happen, and the group reorder and the stage rules work as before
+- Test: `a_group_row_dropped_on_a_group_row_still_reorders_and_a_file_row_does_not_move_a_repository`
+
 ## Functional Requirements (mandatory)
 
 - FR-1: MUST create, rename and delete groups.
@@ -373,13 +437,15 @@ Scenario 5: **Arrow keys through groups**
 - FR-5: MUST drop a repository from the list when no group holds it.
 - FR-6: MUST add repositories with `+ Add Repository`, Cmd+O, or by dropping folders on the window.
 - FR-7: MUST refuse folders that are not Git repositories and say so in a red notice.
-- FR-8: MUST reorder groups by drag in the group column and repositories by drag inside a group, and keep both orders.
+- FR-8: MUST reorder groups by drag in the group column and repositories by drag inside a group, and keep both orders; moving a repository to another group is FR-15.
 - FR-9: MUST offer Reveal in Finder and Remove on a repository, and Rename and Delete on a group.
 - FR-10: MUST show the repository count and the problem count on a group row, and the group name and count in the repository column header.
 - FR-11: MUST show name, one-word state, branch and non-zero counts on a repository row; a repository that cannot be read shows its error and a red mark.
 - FR-12: MUST restore the last selected group and repository on the next launch.
 - FR-13: SHOULD let the group name input handle composed text (such as Korean) and copy and paste.
 - FR-14: SHOULD let a click dismiss a notice, and a fully successful add clears an earlier failure notice.
+- FR-15: MUST move a repository to another group when its row is dragged onto that group's row in the group column: it leaves the group it was dragged from and joins the end of the target group, appears once there, and keeps the saved order of the other rows.
+- FR-16: MUST keep the repository folder untouched by the move, and MUST NOT drop the repository from the list, since it is still in the target group.
 
 ## Constraints (mandatory)
 
@@ -396,3 +462,4 @@ Scenario 5: **Arrow keys through groups**
 - SC-3: A dragged order of groups or of repositories survives a restart.
 - SC-4: Reopening the app selects the last group and repository.
 - SC-5: `mise run check` passes and every line of the feature is covered by a test.
+- SC-6: Dragging a repository row onto another group row moves it, and the move survives a restart.

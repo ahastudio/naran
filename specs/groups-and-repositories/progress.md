@@ -41,6 +41,9 @@
 3. Step 2, Workspace: `app/src/workspace/membership.rs`, `navigation.rs`, `reading.rs` and `feedback.rs`, covered by the Step 0 tests.
 4. Step 3, Model: `app/src/model/settings.rs` and `app/src/model.rs`, with tests in `app/src/model/tests.rs` and `app/src/model/tests/groups.rs`.
 5. Step 4, Platform: `app/src/store.rs`, `app/src/picker.rs` and `app/src/finder.rs`, with their unit tests.
+6. Step 5 Red: wrote the five story 7 acceptance tests and five model tests.
+7. Step 5 Green: `Settings::move_to_group`, `Workspace::move_to_group`, `neighbour`, the source group on `DraggedRepository`, and the group row that accepts it.
+8. Step 5 Refactoring: `drop_border` in `app/src/widgets.rs` shared by the group reorder, the repository reorder and the new drop.
 
 **Created/modified files**:
 
@@ -49,6 +52,9 @@
 - `app/src/workspace/group_order.rs` (new)
 - `app/src/model/tests/groups.rs` (new)
 - `app/src/workspace/tests.rs` (two module lines appended)
+- `app/src/workspace/tests/moving_a_repository_to_another_group_acceptance.rs` (new)
+- `app/src/model/settings.rs`, `app/src/model/tests/groups.rs`, `app/src/widgets.rs` (modified)
+- `app/src/workspace/membership.rs`, `navigation.rs`, `repositories.rs`, `group_order.rs`, `tests.rs` (modified)
 
 ### Phase 4: Testing ✅
 
@@ -56,6 +62,8 @@
 
 1. Added acceptance tests that drive the window for the scenarios that lacked one.
 2. Ran `cargo test -p naran-app --lib`: 298 passed, 0 failed.
+3. After Step 5, ran `cargo test --workspace`: 313 passed in the app, 0 failed in every crate.
+4. After Step 5, ran `mise run check`: it passed; the coverage rule said every line, function and region is covered.
 
 **Created/modified files**:
 
@@ -138,6 +146,16 @@
 | `picker::tests::a_closed_picker_is_a_cancel_not_an_error` | AppleScript -128, no exit code, no output | Canceled in each case | ok | ✅ |
 | `picker::tests::cancel_stops_only_the_process_with_the_marker` | a process with the marker, Cancel | stopped by a signal | ok | ✅ |
 | `finder::tests::a_program_that_starts_reveals_and_a_missing_one_is_an_error` | a working and a missing program | Ok then Err | ok | ✅ |
+| `moving_a_repository_to_another_group_acceptance::dragging_a_repository_row_onto_a_group_row_moves_it_to_that_group` | drag the second row onto the second group row | it leaves group a, joins b; group a and alpha stay selected; folder kept | ok | ✅ |
+| `moving_a_repository_to_another_group_acceptance::a_moved_repository_stays_in_its_new_group_after_a_restart` | move, then open a new workspace on the same config | the new groups are read back | ok | ✅ |
+| `moving_a_repository_to_another_group_acceptance::dragging_a_repository_over_a_group_row_marks_the_row` | hold a drag over a group row, then drop on the source group | a drag is active; the rule marks only other groups; the source drop changes nothing | ok | ✅ |
+| `moving_a_repository_to_another_group_acceptance::moving_the_selected_repository_out_selects_the_next_row` | move the selected middle, last and only row | gamma, then alpha, then nothing is selected | ok | ✅ |
+| `moving_a_repository_to_another_group_acceptance::a_group_row_dropped_on_a_group_row_still_reorders_and_a_file_row_does_not_move_a_repository` | drop a group row, then a file row, on group rows | order c, a, b; groups and git status unchanged | ok | ✅ |
+| `model::tests::groups::moving_a_repository_takes_it_out_of_its_group_and_puts_it_last_in_the_target` | move x from a to b | a holds y; b holds z, x | ok | ✅ |
+| `model::tests::groups::moving_a_repository_to_a_group_that_holds_it_keeps_it_once` | move x to a group that holds x | b holds x once | ok | ✅ |
+| `model::tests::groups::dropping_a_repository_on_its_own_group_changes_nothing` | move x from a to a | false; a unchanged | ok | ✅ |
+| `model::tests::groups::moving_a_repository_to_a_missing_group_changes_nothing` | move x to a missing group | false; a keeps x | ok | ✅ |
+| `model::tests::groups::moving_a_repository_the_source_group_does_not_hold_changes_nothing` | move a path a does not hold, and from a missing group | false each time; nothing changes | ok | ✅ |
 
 ## Error Log
 
@@ -151,8 +169,8 @@ Questions to recover context when resuming work:
 
 | Question | Answer |
 | -------- | ------ |
-| 1. Which phase is it now? | Phase 4: Testing, complete |
-| 2. What is next? | Nothing planned; every spec scenario has a test, and the save inside group selection is pinned by `switching_to_a_group_that_holds_the_same_repository_is_remembered` |
+| 1. Which phase is it now? | All four phases are complete; Step 5 (story 7) is built and `mise run check` passes |
+| 2. What is next? | None (all done) |
 | 3. What is the goal? | Group, add and tidy repositories, read their state in two columns, and restore the last selection, without touching folders |
 | 4. What was learned so far? | See findings.md |
-| 5. What was completed? | spec.md with 44 traced scenarios, the Outside-In plan, the acceptance tests and the results above |
+| 5. What was completed? | spec.md with 52 traced scenarios for stories 1 to 7, the Outside-In plan with Steps 0 to 5, the acceptance tests and the results above |

@@ -26,7 +26,7 @@ impl Workspace {
         }
     }
 
-    fn member_paths(&self) -> Vec<PathBuf> {
+    pub(super) fn member_paths(&self) -> Vec<PathBuf> {
         self.members()
             .iter()
             .map(|entry| entry.path().to_path_buf())
@@ -179,6 +179,20 @@ impl Workspace {
             self.select_all_files(self.shown.marked.staging, cx);
         }
     }
+}
+
+/// The path next to `path` in `paths`: the one after it, or the one before
+/// it when it is the last.
+pub(super) fn neighbour(paths: &[PathBuf], path: &Path) -> Option<PathBuf> {
+    let after = paths
+        .iter()
+        .skip_while(|other| other.as_path() != path)
+        .nth(1);
+    let before = paths
+        .iter()
+        .take_while(|other| other.as_path() != path)
+        .last();
+    after.or(before).cloned()
 }
 
 /// The index one step from `current` in a list of `length` items, kept inside
