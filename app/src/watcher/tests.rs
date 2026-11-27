@@ -29,6 +29,10 @@ fn watches_worktree_files_and_git_state() {
     assert!(is_relevant(&root, &path.join(".git/HEAD")));
     assert!(is_relevant(&root, &path.join(".git/index")));
     assert!(is_relevant(&root, &path.join(".git/refs/heads/main")));
+    assert!(is_relevant(
+        &root,
+        &path.join(".git/worktrees/feature/index")
+    ));
 }
 
 #[test]
@@ -205,4 +209,74 @@ fn a_folder_is_added_while_the_roots_are_unlocked() {
     let other = tempfile::tempdir().unwrap();
     add_root(&roots, other.path(), || false);
     assert_eq!(locked(&roots).len(), 1);
+}
+
+#[test]
+fn reports_the_repository_for_a_change_in_its_worktree() {
+    let directory = tempfile::tempdir().unwrap();
+    let repository = directory.path().join("repository");
+    let folder = directory.path().join("repository-feature");
+    std::fs::create_dir_all(&repository).unwrap();
+    std::fs::create_dir_all(&folder).unwrap();
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded();
+    let mut watching = Watching::start(sender).unwrap();
+    watching.watch(&repository);
+    watching.watch_linked(&folder, &repository);
+    watching.watch_linked(&folder, &directory.path().join("other"));
+    thread::sleep(Duration::from_millis(300));
+    assert_eq!(watching.roots.lock().unwrap().len(), 2);
+
+    std::fs::write(folder.join("file.txt"), "x").unwrap();
+
+    let (found, waiting) = mpsc::channel();
+    thread::spawn(move || {
+        let _ = found.send(futures::executor::block_on(receiver.next()));
+    });
+    let changed = waiting.recv_timeout(Duration::from_secs(5)).ok().flatten();
+    assert_eq!(changed, Some(vec![repository]));
+}
+
+#[test]
+fn a_worktree_folder_that_is_no_longer_listed_is_not_watched_any_more() {
+    let directory = tempfile::tempdir().unwrap();
+    let repository = directory.path().join("repository");
+    let (kept, gone) = (directory.path().join("kept"), directory.path().join("gone"));
+    for folder in [&repository, &kept, &gone] {
+        std::fs::create_dir_all(folder).unwrap();
+    }
+    let (sender, _receiver) = futures::channel::mpsc::unbounded();
+    let mut watching = Watching::start(sender).unwrap();
+    watching.watch(&repository);
+    watching.watch_linked(&kept, &repository);
+    watching.watch_linked(&gone, &repository);
+    assert_eq!(watching.roots.lock().unwrap().len(), 3);
+
+    watching.keep_linked(std::slice::from_ref(&kept));
+
+    let roots = watching.roots.lock().unwrap();
+    let watched: Vec<_> = roots.iter().map(|root| root.watched.clone()).collect();
+    assert_eq!(watched, [repository, kept]);
+}
+
+#[test]
+fn a_folder_that_is_also_a_repository_stays_watched_when_it_is_no_longer_a_worktree() {
+    let directory = tempfile::tempdir().unwrap();
+    let (repository, other) = (
+        directory.path().join("repository"),
+        directory.path().join("other"),
+    );
+    for folder in [&repository, &other] {
+        std::fs::create_dir_all(folder).unwrap();
+    }
+    let (sender, _receiver) = futures::channel::mpsc::unbounded();
+    let mut watching = Watching::start(sender).unwrap();
+    watching.watch(&repository);
+    watching.watch_linked(&other, &repository);
+    watching.watch(&other);
+
+    watching.keep_linked(&[]);
+
+    let roots = watching.roots.lock().unwrap();
+    let watched: Vec<_> = roots.iter().map(|root| root.watched.clone()).collect();
+    assert_eq!(watched, [repository, other]);
 }

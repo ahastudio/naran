@@ -67,7 +67,7 @@ impl Workspace {
         };
         cx.spawn(async move |this, cx| {
             let result = run_in_background(cx, path.clone(), work).await;
-            this.update(cx, |this, cx| this.finish_change(&label, result, path, cx))
+            this.update(cx, |this, cx| this.finish_change(&label, result, &path, cx))
                 .ok();
         })
         .detach();
@@ -89,7 +89,7 @@ impl Workspace {
         &mut self,
         label: &str,
         result: Result<(), Error>,
-        path: PathBuf,
+        path: &Path,
         cx: &mut Context<Self>,
     ) {
         self.progress.busy = None;
@@ -97,7 +97,7 @@ impl Workspace {
             Ok(()) => self.change_done(label),
             Err(error) => self.change_failed(label, &error),
         }
-        Self::refresh_some(vec![path], cx);
+        Self::refresh_some(self.owner_of(path).into_iter().collect(), cx);
     }
 
     fn change_done(&mut self, label: &str) {

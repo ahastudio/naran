@@ -19,7 +19,7 @@ const DEBOUNCE: Duration = Duration::from_millis(200);
 const SAFETY_NET: Duration = Duration::from_secs(60);
 /// Entries inside `.git` that change the state shown on screen. Large
 /// folders such as `objects` and `logs` are ignored.
-const GIT_ENTRIES: [&str; 8] = [
+const GIT_ENTRIES: [&str; 9] = [
     "HEAD",
     "index",
     "refs",
@@ -28,11 +28,15 @@ const GIT_ENTRIES: [&str; 8] = [
     "REVERT_HEAD",
     "rebase-merge",
     "rebase-apply",
+    // The Git entries of the linked worktrees: their HEAD and index.
+    "worktrees",
 ];
 
 struct Root {
     /// The path as registered, which is what gets reported.
     path: PathBuf,
+    /// The folder given to the watcher; not `path` for a worktree's folder.
+    watched: PathBuf,
     /// The path with symbolic links resolved. File events arrive with
     /// resolved paths (on macOS `/var` becomes `/private/var`, and a linked
     /// work folder becomes its target), so matching uses this one.
@@ -42,10 +46,19 @@ struct Root {
 
 impl Root {
     fn new(path: &Path) -> Self {
+        Self::linked(path, path)
+    }
+
+    /// The folder of a worktree, which reports `owner`: its changes are
+    /// changes of the repository that lists it.
+    fn linked(folder: &Path, owner: &Path) -> Self {
         Self {
-            path: path.to_path_buf(),
-            resolved: path.canonicalize().unwrap_or_else(|_| path.to_path_buf()),
-            ignore: Gitignore::new(path.join(".gitignore")).0,
+            path: owner.to_path_buf(),
+            watched: folder.to_path_buf(),
+            resolved: folder
+                .canonicalize()
+                .unwrap_or_else(|_| folder.to_path_buf()),
+            ignore: Gitignore::new(folder.join(".gitignore")).0,
         }
     }
 }
@@ -79,9 +92,60 @@ impl Watching {
         });
     }
 
+    /// Watches the folder of a worktree. Its changes are reported as changes
+    /// of `owner`, the repository that lists it.
+    pub fn watch_linked(&mut self, folder: &Path, owner: &Path) {
+        let watcher = &mut self.watcher;
+        add_linked(&self.roots, Root::linked(folder, owner), || {
+            watcher.watch(folder, RecursiveMode::Recursive).is_ok()
+        });
+    }
+
+    /// Stops watching the worktree folders not in `folders`, such as those of
+    /// removed worktrees. A folder that is a repository of its own stays.
+    pub fn keep_linked(&mut self, folders: &[PathBuf]) {
+        let gone = stale_folders(&self.roots, folders);
+        let own_or_kept = |root: &Root| root.watched == root.path || !gone.contains(&root.watched);
+        locked(&self.roots).retain(own_or_kept);
+        for folder in &gone {
+            self.unwatch_unused(folder);
+        }
+    }
+
+    fn unwatch_unused(&mut self, folder: &Path) {
+        let resolved = folder.canonicalize().unwrap_or_else(|_| folder.into());
+        if !locked(&self.roots).iter().any(|r| r.resolved == resolved) {
+            let _ = self.watcher.unwatch(folder);
+        }
+    }
+
     pub fn unwatch(&mut self, path: &Path) {
         let _ = self.watcher.unwatch(path);
         locked(&self.roots).retain(|root| root.path != path);
+    }
+}
+
+/// The watched worktree folders that `folders` no longer lists. The lock is
+/// let go before they are unwatched (see `add_root`).
+fn stale_folders(roots: &Mutex<Vec<Root>>, folders: &[PathBuf]) -> Vec<PathBuf> {
+    let roots = locked(roots);
+    let stale = roots
+        .iter()
+        .filter(|root| root.watched != root.path && !folders.contains(&root.watched));
+    stale.map(|root| root.watched.clone()).collect()
+}
+
+/// Registers a worktree folder once `add` has started watching it. A folder
+/// that is watched already is left alone, whichever repository it reports.
+fn add_linked(roots: &Mutex<Vec<Root>>, root: Root, add: impl FnOnce() -> bool) {
+    let known = locked(roots)
+        .iter()
+        .any(|known| known.resolved == root.resolved);
+    if known {
+        return;
+    }
+    if add() {
+        locked(roots).push(root);
     }
 }
 

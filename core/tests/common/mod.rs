@@ -104,3 +104,24 @@ pub fn tag<'a>(
         message,
     }
 }
+
+/// A repository with one commit and a linked worktree on its own branch in
+/// another temporary folder.
+pub fn with_worktree() -> (tempfile::TempDir, tempfile::TempDir) {
+    let directory = repository();
+    commit_file(directory.path(), "a.txt", "1", "first");
+    let outside = tempfile::tempdir().unwrap();
+    let linked = outside.path().join("feature");
+    git(
+        directory.path(),
+        &[
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            "feature",
+            linked.to_str().unwrap(),
+        ],
+    );
+    (directory, outside)
+}

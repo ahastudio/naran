@@ -7,7 +7,7 @@ mod settings;
 
 use std::path::{Path, PathBuf};
 
-use naran_core::{Error, Operation, Summary};
+use naran_core::{Error, Operation, Summary, Worktree};
 
 pub use diff::{DiffRow, LineKind, changed_lines, classify, diff_rows, hunks, untracked_as_diff};
 pub use files::{FileKind, FileState, change_badge, change_label};
@@ -45,6 +45,14 @@ impl Entry {
         }
     }
 
+    /// The name of the folder alone, for rows that sit below a repository.
+    pub fn folder(&self) -> String {
+        match self {
+            Self::Ready(summary) => summary.name.clone(),
+            Self::Failed { path, .. } => folder_name(path),
+        }
+    }
+
     /// Files that differ from HEAD: staged, unstaged and untracked.
     pub fn change_count(&self) -> u32 {
         match self {
@@ -56,6 +64,23 @@ impl Entry {
         }
     }
 
+    /// The other worktrees of this repository, in the order Git lists them,
+    /// each shown the way a repository is.
+    pub fn worktrees(&self) -> Vec<Self> {
+        match self {
+            Self::Ready(summary) => summary.worktrees.iter().map(worktree_entry).collect(),
+            Self::Failed { .. } => Vec::new(),
+        }
+    }
+
+    /// How many other worktrees the repository has.
+    pub fn worktree_count(&self) -> usize {
+        match self {
+            Self::Ready(summary) => summary.worktrees.len(),
+            Self::Failed { .. } => 0,
+        }
+    }
+
     /// Needs the user's attention before anything else: unreadable,
     /// conflicted, or stopped in the middle of an operation.
     pub fn has_problem(&self) -> bool {
@@ -63,6 +88,17 @@ impl Entry {
             Self::Ready(summary) => summary.status.conflicted > 0 || summary.operation.is_some(),
             Self::Failed { .. } => true,
         }
+    }
+}
+
+/// A missing or unreadable worktree is a failed entry that keeps its path.
+fn worktree_entry(worktree: &Worktree) -> Entry {
+    match &worktree.summary {
+        Ok(summary) => Entry::Ready(summary.clone()),
+        Err(error) => Entry::Failed {
+            path: worktree.path.clone(),
+            error: error.clone(),
+        },
     }
 }
 
@@ -97,11 +133,27 @@ pub enum Tone {
 /// Sums up a repository's state in a few words, most urgent first.
 pub fn describe(entry: &Entry) -> (String, Tone) {
     match entry {
-        Entry::Failed { error, .. } => (error.to_string(), Tone::Problem),
+        Entry::Failed { error, .. } => (failure_words(error), Tone::Problem),
         Entry::Ready(summary) => {
             let (text, tone) = state_words(summary, entry.change_count());
             (text.to_string(), tone)
         }
+    }
+}
+
+/// The folder name of an unreadable entry; the whole path when it has none.
+fn folder_name(path: &Path) -> String {
+    let name = path.file_name().unwrap_or(path.as_os_str());
+    name.to_string_lossy().into_owned()
+}
+
+/// A gone worktree folder is one word; other failures say what Git said.
+fn failure_words(error: &Error) -> String {
+    match error {
+        Error::InvalidArgument { message } if message == naran_core::MISSING_FOLDER => {
+            "Missing".to_string()
+        }
+        other => other.to_string(),
     }
 }
 

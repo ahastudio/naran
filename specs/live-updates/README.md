@@ -17,7 +17,7 @@ Only the changed repositories are read again, and the window never waits for the
 
 - When the window opens, every registered repository is read once and file watching starts.
 - When the watcher reports a change, only that repository is read again in the background.
-- A repository is summarized by its branch, ahead/behind, and staged/modified/untracked/conflicted counts, plus a one-word state: Merging, Conflicts, Changes, Diverged, Ahead, Behind, No upstream or Clean.
+- A repository is summarized by its branch, ahead/behind, and staged/modified/untracked/conflicted counts, plus a one-word state (the other worktrees of the repository are read with it, see [worktrees](../worktrees/README.md)): Merging, Conflicts, Changes, Diverged, Ahead, Behind, No upstream or Clean.
 - Every 60 seconds all repositories are reported again, in case an event was lost.
 - The Refresh toolbar button or Cmd+R reads every repository again by hand.
 

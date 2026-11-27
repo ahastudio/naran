@@ -11,8 +11,10 @@ use crate::model::{self, Entry, Tone};
 use crate::theme::Theme;
 
 mod badges;
+mod worktree;
 
 pub use badges::{badge, head_badge, status_badge};
+pub use worktree::{Fold, worktree_banner, worktree_row, worktree_slot};
 
 /// An element with an id, which tests can also find by that id.
 pub fn identified(id: impl Into<ElementId>) -> Stateful<Div> {
@@ -180,7 +182,7 @@ pub fn repository_row(index: usize, entry: &Entry, theme: &Theme) -> Stateful<Di
         .border_color(marker)
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
-        .child(title_line(entry, theme))
+        .child(title_line(entry, entry.name(), theme))
         .child(row_details(entry, theme))
 }
 
@@ -194,7 +196,7 @@ fn problem_marker(entry: &Entry, theme: &Theme) -> Hsla {
 }
 
 /// Name on the left, state on the right.
-fn title_line(entry: &Entry, theme: &Theme) -> Div {
+fn title_line(entry: &Entry, name: String, theme: &Theme) -> Div {
     let (state, tone) = model::describe(entry);
     div()
         .flex()
@@ -205,7 +207,7 @@ fn title_line(entry: &Entry, theme: &Theme) -> Div {
                 .flex_1()
                 .truncate()
                 .font_weight(FontWeight::SEMIBOLD)
-                .child(entry.name()),
+                .child(name),
         )
         .child(
             div()

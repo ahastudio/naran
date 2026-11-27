@@ -196,3 +196,5 @@ mod live_updates_acceptance;
 mod renamed_files_acceptance;
 mod staging_acceptance;
 mod staging_diff_acceptance;
+mod worktrees_acceptance;
+mod worktrees_detail_acceptance;

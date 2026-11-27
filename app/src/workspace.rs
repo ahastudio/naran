@@ -27,6 +27,7 @@ mod repositories;
 mod state;
 #[cfg(test)]
 mod tests;
+mod worktrees;
 
 use layout::SavedLayout;
 use state::{Feedback, Files, Interaction, Progress, Scrolls, Services, Shown};

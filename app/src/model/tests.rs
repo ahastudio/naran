@@ -5,6 +5,7 @@ use super::*;
 mod diff;
 mod groups;
 mod labels;
+mod worktrees;
 
 fn settings() -> Settings {
     Settings {
@@ -27,6 +28,7 @@ fn ready(path: &str, status: Status) -> Entry {
         name: path.trim_start_matches('/').into(),
         status,
         operation: None,
+        worktrees: Vec::new(),
     })
 }
 
@@ -36,6 +38,7 @@ fn doing(path: &str, operation: Operation) -> Entry {
         name: path.trim_start_matches('/').into(),
         status: Status::default(),
         operation: Some(operation),
+        worktrees: Vec::new(),
     })
 }
 

@@ -8,7 +8,7 @@ use naran_core::{Error, FileInCommit, Operation, Staging, summarize};
 #[cfg(test)]
 mod common;
 
-use common::{git, repository};
+use common::{commit_file, git, repository, with_worktree};
 
 #[test]
 fn counts_changes() {
@@ -164,4 +164,53 @@ fn every_file_in_a_new_folder_is_listed_and_counted() {
     assert_eq!(changed, files);
     assert_eq!(naran_core::ops::changed_paths(path).unwrap().len(), 2);
     assert_eq!(summarize(path).unwrap().status.untracked, 2);
+}
+
+#[test]
+fn lists_the_other_worktrees_of_a_repository() {
+    let (directory, outside) = with_worktree();
+    let linked = outside.path().join("feature");
+    fs::write(linked.join("new.txt"), "1").unwrap();
+
+    let summary = summarize(directory.path()).unwrap();
+
+    assert_eq!(summary.worktrees.len(), 1);
+    let worktree = &summary.worktrees[0];
+    assert_eq!(worktree.path, linked.canonicalize().unwrap());
+    assert!(!worktree.locked && !worktree.prunable);
+    let inner = worktree.summary.as_ref().unwrap();
+    assert_eq!(inner.status.branch.as_deref(), Some("feature"));
+    assert_eq!(inner.status.untracked, 1);
+    assert_eq!(inner.worktrees.len(), 0);
+    assert_eq!(summary.status.untracked, 0);
+}
+
+#[test]
+fn a_linked_worktree_lists_the_main_one_and_not_itself() {
+    let (directory, outside) = with_worktree();
+
+    let summary = summarize(&outside.path().join("feature")).unwrap();
+
+    assert_eq!(summary.worktrees.len(), 1);
+    let main = directory.path().canonicalize().unwrap();
+    assert_eq!(summary.worktrees[0].path, main);
+}
+
+#[test]
+fn a_repository_without_other_worktrees_has_an_empty_list() {
+    let directory = repository();
+    commit_file(directory.path(), "a.txt", "1", "first");
+
+    assert_eq!(summarize(directory.path()).unwrap().worktrees.len(), 0);
+}
+
+#[test]
+fn a_worktree_whose_folder_is_gone_is_listed_with_an_error() {
+    let (directory, outside) = with_worktree();
+    fs::remove_dir_all(outside.path().join("feature")).unwrap();
+
+    let summary = summarize(directory.path()).unwrap();
+
+    assert!(summary.worktrees[0].prunable);
+    assert!(summary.worktrees[0].summary.is_err());
 }

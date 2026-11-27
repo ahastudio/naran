@@ -77,7 +77,7 @@ impl Workspace {
     /// The selected repository when the selected group holds it, or else the
     /// group's first one.
     fn visible_selection(&self) -> Option<PathBuf> {
-        let members = self.member_paths();
+        let members = self.owned_paths();
         let current = self.selection.repository.as_ref();
         let kept = current.filter(|path| members.contains(path)).cloned();
         kept.or_else(|| members.first().cloned())
@@ -141,7 +141,7 @@ impl Workspace {
     }
 
     pub(super) fn step_selection(&mut self, delta: isize, cx: &mut Context<Self>) {
-        let members = self.member_paths();
+        let members = self.rows_on_screen();
         let paths: Vec<&Path> = members.iter().map(PathBuf::as_path).collect();
         let next =
             model::step(&paths, self.selection.repository.as_deref(), delta).map(Path::to_path_buf);

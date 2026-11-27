@@ -1,6 +1,7 @@
 //! The parts the workspace keeps between frames, grouped by what they are
 //! for, so each field says which part of the screen it serves.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use gpui::{Entity, ScrollHandle, SharedString, Subscription, UniformListScrollHandle};
@@ -151,6 +152,9 @@ pub(super) struct Interaction {
     /// A group name being typed.
     pub(super) editing: Option<Editing>,
     pub(super) menu: Option<ContextMenu>,
+    /// The repositories whose worktrees are shown below them. Not saved:
+    /// every window opens with them folded.
+    pub(super) open_worktrees: HashSet<PathBuf>,
     pub(super) dragging: Option<Divider>,
     pub(super) pressed: Pressed,
 }

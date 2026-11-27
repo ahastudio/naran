@@ -15,6 +15,7 @@ pub mod log;
 pub mod ops;
 pub mod patch;
 pub mod status;
+pub mod worktree;
 
 use std::path::{Path, PathBuf};
 
@@ -30,6 +31,7 @@ pub use history::{
 };
 pub use log::CommitDetail;
 pub use status::{Change, Status};
+pub use worktree::{MISSING_FOLDER, Worktree};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, thiserror::Error)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -65,9 +67,20 @@ pub struct Summary {
     pub name: String,
     pub status: Status,
     pub operation: Option<Operation>,
+    /// The other worktrees of the repository, read like repositories. Empty
+    /// inside the summaries of those worktrees.
+    pub worktrees: Vec<Worktree>,
 }
 
+/// The repository with its other worktrees.
 pub fn summarize(repository: &Path) -> Result<Summary, Error> {
+    let mut summary = summarize_folder(repository)?;
+    summary.worktrees = worktree::others(repository);
+    Ok(summary)
+}
+
+/// One folder alone, without looking for its worktrees.
+pub(crate) fn summarize_folder(repository: &Path) -> Result<Summary, Error> {
     let arguments = [status::ARGUMENTS.as_slice(), &["--branch"]].concat();
     let (output, git_directory) = git::read(repository, &arguments).and_then(|output| {
         git::read(repository, &["rev-parse", "--absolute-git-dir"])
@@ -79,6 +92,7 @@ pub fn summarize(repository: &Path) -> Result<Summary, Error> {
         name: repository_name(repository),
         status: status::parse(&output),
         operation: operation_in_progress(Path::new(git_directory.trim())),
+        worktrees: Vec::new(),
     })
 }
 

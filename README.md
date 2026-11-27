@@ -35,6 +35,12 @@ It stages and unstages; it never commits, fetches, pulls or pushes.
 - Click a past commit to see its message, details, files and diff (read only).
   Images are shown as Before and After.
 
+### Worktrees
+
+- A repository that has other worktrees shows an arrow and their number at the right end of its row; click it to open them below the repository.
+- Each worktree has its own branch, state and counts, follows the files in its folder, and can be selected like a repository to read and stage its changes.
+- Naran only shows worktrees and moves between them; it never creates or removes one.
+
 ### Staging
 
 - Every file of a new folder is listed on its own.

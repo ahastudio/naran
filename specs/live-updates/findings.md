@@ -56,7 +56,7 @@ none
 | -------- | --------- |
 | Debounce events per repository (200ms) | "A burst of file writes becomes one report" (watcher.rs header comment) |
 | 60 second safety-net tick | Reports again "in case an event was lost"; unchanged repositories cost one `git status` each (comment on `SAFETY_NET`) |
-| Watch only some `.git` entries (`HEAD`, `index`, `refs`, merge/rebase markers) | These change the state shown; large folders such as `objects` and `logs` are ignored (comment on `GIT_ENTRIES`) |
+| Watch only some `.git` entries (`HEAD`, `index`, `refs`, merge/rebase markers, and `worktrees` since the worktrees feature) | These change the state shown; large folders such as `objects` and `logs` are ignored (comment on `GIT_ENTRIES`) |
 | Match events against resolved paths, report the registered path | Events arrive with resolved paths, such as `/private/var` on macOS (comment on `Root`) |
 | Skip failed watcher events | A failed event carries no paths; the periodic tick makes up for it (comment on `route`) |
 | Tolerate a poisoned lock on the roots | The list itself stays whole (comment on `locked`) |

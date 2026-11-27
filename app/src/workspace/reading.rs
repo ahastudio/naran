@@ -1,7 +1,7 @@
 //! Reading the repositories off the UI thread, watching them for changes,
 //! and forgetting the ones no group holds any more.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use futures::StreamExt;
 use futures::channel::mpsc::UnboundedReceiver;
@@ -35,6 +35,7 @@ impl Workspace {
 
     fn finish_refresh(&mut self, entries: Vec<Entry>, cx: &mut Context<Self>) {
         self.entries = entries;
+        self.watch_worktrees();
         self.progress.reading = false;
         self.reload_selection(cx);
         cx.notify();
@@ -62,14 +63,19 @@ impl Workspace {
     }
 
     fn is_selected_among(&self, paths: &[PathBuf]) -> bool {
-        let selected = self.selection.repository.as_ref();
-        selected.is_some_and(|path| paths.contains(path))
+        let selected = self.selection.repository.as_deref();
+        let owner = |path: &Path| self.owner_of(path);
+        // A selection nobody owns any more is a worktree that was removed:
+        // the details are reloaded so the selection moves to a repository.
+        selected.is_some_and(|path| owner(path).is_none_or(|owner| paths.contains(&owner)))
     }
 
     /// Replaces the entries that differ from the ones read; tells whether any did.
     fn replace_entries(&mut self, entries: Vec<Entry>) -> bool {
         let replace = |changed, entry| self.replace_entry(entry) || changed;
-        entries.into_iter().fold(false, replace)
+        let changed = entries.into_iter().fold(false, replace);
+        self.watch_worktrees();
+        changed
     }
 
     /// Puts the entry in place of the one for the same path. True when that

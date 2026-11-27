@@ -71,7 +71,7 @@ impl Workspace {
         let rows: Vec<Div> = members
             .iter()
             .enumerate()
-            .map(|(index, entry)| self.repository_item(index, entry, theme, cx))
+            .flat_map(|(index, entry)| self.repository_rows(index, entry, theme, cx))
             .collect();
         self.repositories_frame()
             .children(
@@ -103,6 +103,19 @@ impl Workspace {
         "Create a group with + New Group first. Repositories live inside groups."
     }
 
+    /// The row of a repository and, when it is open, its worktrees below.
+    fn repository_rows(
+        &self,
+        index: usize,
+        entry: &Entry,
+        theme: &Theme,
+        cx: &mut Context<Self>,
+    ) -> Vec<Div> {
+        let item = self.repository_item(index, entry, theme, cx);
+        let worktrees = self.worktree_rows(entry, theme, cx);
+        std::iter::once(item).chain(worktrees).collect()
+    }
+
     fn repository_item(
         &self,
         index: usize,
@@ -116,6 +129,7 @@ impl Workspace {
         repository_frame(&path, theme, cx)
             .when(selected, |row| row.bg(theme.selected))
             .child(content)
+            .children(self.worktree_toggle(entry, theme, cx))
             .on_mouse_down(
                 MouseButton::Right,
                 open_menu_listener(MenuTarget::Repository(path), cx),

@@ -27,7 +27,7 @@ impl Workspace {
         theme: &Theme,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let column = detail_column();
+        let column = detail_column().children(self.worktree_banner(theme));
         match self.selected_detail() {
             Some(detail) => column
                 .child(self.commits_pane(detail, theme, cx))
