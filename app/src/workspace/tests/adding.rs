@@ -6,7 +6,7 @@ use super::*;
 fn the_folder_picker_answers_are_handled_without_waiting_for_it(cx: &mut TestAppContext) {
     use crate::picker::PickOutcome;
     let fixture = fixture(&[("work", &[0])]);
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
     workspace.update(cx, |workspace, cx| {
         workspace.select_group(Some("work".into()), cx);
     });

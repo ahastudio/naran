@@ -6,7 +6,7 @@ use super::*;
 fn shows_changes_made_outside_the_app_without_a_refresh(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let fixture = fixture(&[]);
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
     let state = |cx: &mut VisualTestContext| {
         workspace.read_with(cx, |workspace, _| {
             let gamma = workspace

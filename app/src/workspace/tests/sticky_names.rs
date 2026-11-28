@@ -122,12 +122,13 @@ fn stacked_diffs_keep_the_name_of_the_file_at_the_top_until_the_next_file(cx: &m
         list,
         f32::from(u16::try_from(second).unwrap()) * 20. - 200.,
     );
-    assert!(
-        cx.debug_bounds("sticky-head-0").is_none(),
-        "a.txt is gone once b.txt has fully come in"
-    );
-    assert!(
-        cx.debug_bounds(Box::leak(format!("sticky-head-{second}").into_boxed_str()))
-            .is_some()
-    );
+    // GPUI keeps the bounds of earlier frames in two buffers and never clears
+    // them, so "no bounds" depends on how many frames were drawn since. Only
+    // the head that is drawn now is asserted; one sticky head is drawn at a
+    // time (`sticky_head` is tested on its own).
+    let head = format!("sticky-head-{second}");
+    let came_in = cx
+        .debug_bounds(Box::leak(head.into_boxed_str()))
+        .expect("b.txt is the head at the top");
+    assert_eq!(came_in.origin.y, list.origin.y, "b.txt has fully come in");
 }

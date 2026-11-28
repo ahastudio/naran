@@ -155,7 +155,7 @@ fn puts_repositories_into_a_group_and_takes_them_out(cx: &mut TestAppContext) {
 #[gpui::test]
 fn drops_a_repository_that_leaves_its_last_group(cx: &mut TestAppContext) {
     let fixture = fixture(&[]);
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
 
     workspace.update(cx, |workspace, cx| {
         workspace.remove(&fixture.alpha, cx);

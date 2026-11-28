@@ -52,10 +52,16 @@
 
 1. The acceptance tests and the existing feature tests of the app and core were run.
 2. Results are in the table below.
+3. The picks stay across a read of the same diff, and window tests open without a watcher unless they read from it; the causes are in Issues Encountered of `findings.md`.
 
 **Created/Modified files**:
 
-- `specs/live-updates/progress.md`
+- `app/src/workspace/detail/viewing.rs`
+- `app/src/workspace/tests.rs`
+- `app/src/workspace/tests/live_updates_acceptance.rs`
+- `app/src/workspace/tests/{notices,groups,adding,worktrees_acceptance}.rs` (`open_watched`)
+- `app/src/watcher/tests.rs`
+- `app/src/workspace/tests/sticky_names.rs`
 
 ## Test Results
 
@@ -78,6 +84,8 @@
 | `behind_then_diverged_follow_the_upstream_after_refreshes` | branch tracking main; commit on main; commit on branch | Clean, Behind, Diverged | passed | ✅ |
 | `ahead_shows_after_a_local_commit_and_changes_outrank_it` | local commit, then untracked file | Ahead, then Changes | passed | ✅ |
 | `a_repository_that_cannot_be_read_shows_its_error_as_a_problem` | alpha folder deleted, Cmd+R | alpha Failed with problem tone, others Ready | passed | ✅ |
+| `a_change_report_that_leaves_the_diff_alone_keeps_the_picked_lines` | one line picked, change report, Stage lines | 1 pick kept, staged `alpha\nmore\n` | passed | ✅ |
+| `a_change_report_that_changes_the_diff_drops_the_picked_lines` | one line picked, file rewritten, change report | no picks | passed | ✅ |
 | `reports_a_burst_of_writes_once_with_the_registered_path` | 5 files written | one report with the registered path; watch twice adds nothing | passed | ✅ |
 | `debounce_groups_a_burst_and_stops_when_either_side_is_gone` | /a, /a, /b | one burst of /a and /b; ends when a side is gone | passed | ✅ |
 | `watches_worktree_files_and_git_state` | source file and `.git` HEAD, index, refs | relevant | passed | ✅ |
@@ -103,7 +111,8 @@
 
 | Timestamp | Error | Attempt | Resolution |
 | --------- | ----- | ------- | ---------- |
-| none recorded | none recorded | 0 | none recorded |
+| none recorded | CI run: `a_line_added_after_an_unterminated_last_line_stages_with_its_newline` staged `alpha`; `stacked_diffs_keep_the_name_of_the_file_at_the_top_until_the_next_file` failed on "a.txt is gone once b.txt has fully come in" | 1 | Reproduced with `refresh_some` between the steps; picks stay across a read of the same diff, `open` has no watcher, the sticky test asserts the head that is drawn |
+| none recorded | `mise run check`: coverage missed lines of `watcher.rs`, `membership.rs` and `reading.rs` after `open` dropped the watcher | 1 | The tests that watch, unwatch and add repositories use `open_watched`; the worktree watcher test removes the folder before `keep_linked` |
 
 ## 5-Question Reboot Check
 
@@ -112,7 +121,7 @@ Questions to recover context when work resumes:
 | Question | Answer |
 | -------- | ------ |
 | 1. Which phase is current? | Phase 4: Testing, done |
-| 2. What is next? | Nothing planned for this feature |
+| 2. What is next? | None (all done) |
 | 3. What is the goal? | Changes made outside the app show at once, reading only changed repositories in the background |
 | 4. What was learned? | Simulated clicks finish background reads; no window test pins the watcher rule; see findings.md |
-| 5. What was completed? | Spec, Outside-In plan, ten window-driven acceptance tests, all listed results passing |
+| 5. What was completed? | Spec, Outside-In plan, twelve window-driven acceptance tests, all listed results passing |

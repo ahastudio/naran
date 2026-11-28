@@ -44,7 +44,20 @@ use fixtures::{
     repository,
 };
 
+/// Opens the window without a file watcher. The watcher reports the writes
+/// that built the fixture some time after the window opens, which would
+/// read the repository again in the middle of a test and make it depend on
+/// how busy the machine is. Tests of live updates use [`open_watched`].
 pub(super) fn open<'a>(
+    fixture: &Fixture,
+    cx: &'a mut TestAppContext,
+) -> (Entity<Workspace>, &'a mut VisualTestContext) {
+    let (workspace, cx) = open_watched(fixture, cx);
+    workspace.update(cx, |workspace, _| workspace.services.watching = None);
+    (workspace, cx)
+}
+
+pub(super) fn open_watched<'a>(
     fixture: &Fixture,
     cx: &'a mut TestAppContext,
 ) -> (Entity<Workspace>, &'a mut VisualTestContext) {

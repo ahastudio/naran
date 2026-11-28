@@ -223,7 +223,7 @@ fn a_file_created_in_a_worktree_shows_without_a_refresh(cx: &mut TestAppContext)
     cx.executor().allow_parking();
     let fixture = fixture(&[]);
     let folder = add_worktree(&fixture.alpha, "feature");
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
     let untracked =
         |cx: &mut VisualTestContext| match worktrees_of(&workspace, &fixture.alpha, cx).first() {
             Some(Entry::Ready(summary)) => summary.status.untracked,
@@ -240,7 +240,7 @@ fn a_file_created_in_a_worktree_shows_without_a_refresh(cx: &mut TestAppContext)
 fn worktrees_are_listed_when_watching_is_off(cx: &mut TestAppContext) {
     let fixture = fixture(&[]);
     add_worktree(&fixture.alpha, "feature");
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
     workspace.update(cx, |workspace, cx| {
         workspace.services.watching = None;
         workspace.refresh(cx);

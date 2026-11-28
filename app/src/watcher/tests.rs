@@ -250,6 +250,8 @@ fn a_worktree_folder_that_is_no_longer_listed_is_not_watched_any_more() {
     watching.watch_linked(&kept, &repository);
     watching.watch_linked(&gone, &repository);
     assert_eq!(watching.roots.lock().unwrap().len(), 3);
+    // A removed worktree has no folder left to resolve.
+    std::fs::remove_dir(&gone).unwrap();
 
     watching.keep_linked(std::slice::from_ref(&kept));
 

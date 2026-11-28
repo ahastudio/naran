@@ -66,10 +66,25 @@ none
 | Prune repositories no group holds | "They could never be seen again, so they should not be read or watched" (comment on `prune`) |
 | List every untracked file separately | "git would otherwise show a new folder as one entry" (comment on `status::ARGUMENTS`) |
 | Tell the user when watching fails | The notice says "Use Refresh." |
+| Keep the picked lines while a diff is read again with the same lines | The picks are indexes into the lines (`Viewing::read`); other lines drop them |
+| Clear the picks when a staging change went through | They are used up; a second click would apply old indexes to the next diff (`use_up_picks`) |
+| Window tests open without a watcher; `open_watched` for the tests that need it | A late report reads a repository in the middle of a test (`open` in `tests.rs`) |
 
 ## Issues Encountered
 
-none recorded
+### Tests failed or waited when the watcher reported late
+
+CI failed in `a_line_added_after_an_unterminated_last_line_stages_with_its_newline` (staged `alpha`, expected `alpha\nmore\n`) and `stacked_diffs_keep_the_name_of_the_file_at_the_top_until_the_next_file` (`a.txt is gone once b.txt has fully come in`).
+Every test built its fixture with file writes and then opened a window whose real file watcher reported those writes some time later.
+The report ran `refresh_some` in the middle of the test.
+A refresh opened the file again and dropped the picked lines, so `apply-lines` staged nothing.
+Calling `refresh_some` between picking and applying reproduced the failure on every run; with a refresh before the last scroll the sticky test failed on every run too.
+`open` in `app/src/workspace/tests.rs` now drops the watcher, and the seven tests that read from the real watcher or run its watch and unwatch calls use `open_watched`.
+`Viewing::read` keeps the picks while a diff is read again with the same lines and drops them when the lines differ.
+The sticky test failed for a second reason: GPUI keeps the bounds of drawn elements in two frame buffers and `Frame::clear` does not clear them, so `debug_bounds(..).is_none()` after a repaint depends on how many frames were drawn since the element was last drawn.
+One extra frame, such as the one a refresh causes, makes the stale bounds of `sticky-head-0` visible, although only one sticky head is drawn per frame.
+Without a watcher in `open`, only tests that use `open_watched` or the watcher tests run the watch and unwatch lines, which coverage requires.
+The test asserts the head that is drawn (`sticky-head-<second>` at the top of the list), which holds with or without a refresh before the last scroll.
 
 ## Learnings
 
