@@ -13,6 +13,9 @@ use super::pictures::{PictureSource, Pictures, image_format, pictures_from, read
 use super::versions::{Compared, read_diff};
 use crate::model::{FileKind, FileState};
 
+/// What a file shown again keeps: its lines and the picks on them.
+type Kept = (Option<Result<Vec<String>, Error>>, BTreeSet<usize>);
+
 /// The diff of one file, with the lines picked for staging or unstaging.
 pub(in crate::workspace) struct Viewing {
     pub(in crate::workspace) repository: PathBuf,
@@ -28,7 +31,8 @@ pub(in crate::workspace) struct Viewing {
 }
 
 impl Viewing {
-    fn new(key: &ViewKey, kind: FileKind, lines: Option<Result<Vec<String>, Error>>) -> Self {
+    fn new(key: &ViewKey, kind: FileKind, kept: Kept) -> Self {
+        let (lines, picked) = kept;
         Self {
             repository: key.repository.clone(),
             file: key.file.clone(),
@@ -36,7 +40,7 @@ impl Viewing {
             kind,
             lines,
             pictures: None,
-            picked: BTreeSet::new(),
+            picked,
         }
     }
 
@@ -54,6 +58,15 @@ impl Viewing {
     /// Whether this is the diff of `file` in the `staging` list.
     pub(super) fn shows(&self, file: &str, staging: Staging) -> bool {
         self.file == file && self.staging == staging
+    }
+
+    /// Shows the diff that was read. Picks stay only while the lines are the
+    /// same, since they are indexes into them.
+    fn read(&mut self, lines: Result<Vec<String>, Error>) {
+        if !matches!((&self.lines, &lines), (Some(Ok(old)), Ok(new)) if old == new) {
+            self.picked.clear();
+        }
+        self.lines = Some(lines);
     }
 
     /// Picks a line, or takes it off the picks when it was picked.
@@ -123,21 +136,21 @@ impl Workspace {
         }
     }
 
-    /// The lines already read stay while the same file is shown again; another
-    /// file starts at its left edge.
+    /// The lines already read and the picks stay while the same file is shown
+    /// again, as a refresh does; another file starts at its left edge.
     fn show_file(&mut self, key: &ViewKey, state: FileState) {
         let same = self
             .shown
             .viewing
             .as_ref()
             .filter(|viewing| key.is_shown(viewing));
-        let keep = same.and_then(|viewing| viewing.lines.clone());
+        let kept = same.map(|viewing| (viewing.lines.clone(), viewing.picked.clone()));
         if same.is_none() {
             self.scrolls
                 .diff_sideways
                 .set_offset(gpui::point(px(0.), px(0.)));
         }
-        self.shown.viewing = Some(Viewing::new(key, state.kind, keep));
+        self.shown.viewing = Some(Viewing::new(key, state.kind, kept.unwrap_or_default()));
     }
 
     fn read_viewing(key: ViewKey, state: FileState, cx: &mut Context<Self>) {
@@ -169,7 +182,7 @@ impl Workspace {
         cx.spawn(async move |this, cx| {
             let lines = read_diff_in_background(cx, &key, compared).await;
             this.update(cx, |this, cx| {
-                this.with_viewing(&key, |viewing| viewing.lines = Some(lines), cx);
+                this.with_viewing(&key, |viewing| viewing.read(lines), cx);
             })
             .ok();
         })

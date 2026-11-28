@@ -101,10 +101,19 @@ impl Workspace {
     }
 
     fn change_done(&mut self, label: &str) {
+        self.use_up_picks();
         self.shown.marked = Marked::default();
         self.shown.stacked = None;
         self.feedback.notice = None;
         self.report(format!("{label}: done"), Outcome::Succeeded);
+    }
+
+    /// The picks of a change that went through are used up; the diff read
+    /// next has other lines.
+    fn use_up_picks(&mut self) {
+        if let Some(viewing) = self.shown.viewing.as_mut() {
+            viewing.picked.clear();
+        }
     }
 
     fn change_failed(&mut self, label: &str, error: &Error) {

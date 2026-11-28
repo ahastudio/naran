@@ -42,4 +42,4 @@ Changes made outside the app show up at once; only changed repositories are read
 - Keep the Phase status current as work moves.
 - Update the Phase status as you go: ⏸️ waiting → 🔄 in progress → ✅ done.
 - Record decisions in Technical Decisions in findings.md.
-- Record errors in Issues Encountered in findings.md; none are recorded.
+- Record errors in Issues Encountered in findings.md.

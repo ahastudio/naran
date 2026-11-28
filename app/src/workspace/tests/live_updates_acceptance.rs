@@ -3,6 +3,9 @@
 
 use std::time::Duration;
 
+use gpui::Modifiers;
+
+use super::staging_acceptance::click_row;
 use super::*;
 
 fn state_of(workspace: &Entity<Workspace>, path: &Path, cx: &mut VisualTestContext) -> String {
@@ -38,7 +41,7 @@ fn wait_until(cx: &mut VisualTestContext, mut done: impl FnMut(&mut VisualTestCo
 fn a_burst_of_writes_ends_with_every_file_counted(cx: &mut TestAppContext) {
     cx.executor().allow_parking();
     let fixture = fixture(&[]);
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
 
     for number in 0..10 {
         std::fs::write(fixture.gamma.join(format!("f{number}.txt")), "x").unwrap();
@@ -54,7 +57,7 @@ fn ignored_files_are_not_counted_but_the_next_real_change_is(cx: &mut TestAppCon
     cx.executor().allow_parking();
     let fixture = fixture(&[]);
     commit(&fixture.gamma, ".gitignore", "*.log\n", "ignore logs");
-    let (workspace, cx) = open(&fixture, cx);
+    let (workspace, cx) = open_watched(&fixture, cx);
 
     std::fs::write(fixture.gamma.join("build.log"), "noise").unwrap();
     std::fs::write(fixture.gamma.join("real.txt"), "work").unwrap();
@@ -214,4 +217,51 @@ fn a_registered_folder_that_is_gone_is_listed_as_failed_and_the_rest_still_work(
     });
     assert_eq!(state_of(&workspace, &fixture.beta, cx), "Changes");
     assert_eq!(state_of(&workspace, &fixture.gamma, cx), "No upstream");
+}
+
+/// Reads the repository again the way the watcher's report does.
+fn report_change(workspace: &Entity<Workspace>, path: &Path, cx: &mut VisualTestContext) {
+    let path = path.to_path_buf();
+    workspace.update(cx, |_, cx| Workspace::refresh_some(vec![path], cx));
+    cx.run_until_parked();
+}
+
+fn picked_lines(workspace: &Entity<Workspace>, cx: &mut VisualTestContext) -> usize {
+    workspace.read_with(cx, |workspace, _| {
+        workspace
+            .shown
+            .viewing
+            .as_ref()
+            .map_or(0, |v| v.picked.len())
+    })
+}
+
+#[gpui::test]
+fn a_change_report_that_leaves_the_diff_alone_keeps_the_picked_lines(cx: &mut TestAppContext) {
+    let fixture = fixture(&[]);
+    std::fs::write(fixture.alpha.join("README.md"), "alpha\nmore\n").unwrap();
+    let (workspace, cx) = open(&fixture, cx);
+    click_row(cx, "file-unstaged-README.md", Modifiers::none());
+    click(cx, "diff-line-8");
+
+    report_change(&workspace, &fixture.alpha, cx);
+
+    assert_eq!(picked_lines(&workspace, cx), 1);
+    click(cx, "apply-lines");
+    let staged = git_output(&fixture.alpha, &["show", ":README.md"]);
+    assert_eq!(staged, "alpha\nmore\n");
+}
+
+#[gpui::test]
+fn a_change_report_that_changes_the_diff_drops_the_picked_lines(cx: &mut TestAppContext) {
+    let fixture = fixture(&[]);
+    std::fs::write(fixture.alpha.join("README.md"), "alpha\nmore\n").unwrap();
+    let (workspace, cx) = open(&fixture, cx);
+    click_row(cx, "file-unstaged-README.md", Modifiers::none());
+    click(cx, "diff-line-8");
+
+    std::fs::write(fixture.alpha.join("README.md"), "alpha\nother\nmore\n").unwrap();
+    report_change(&workspace, &fixture.alpha, cx);
+
+    assert_eq!(picked_lines(&workspace, cx), 0);
 }

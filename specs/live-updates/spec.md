@@ -73,6 +73,20 @@ Scenario 8: **Watching cannot start**
 - Then: a notice says "Could not watch the repositories for changes. Use Refresh." and nothing is watched
 - Test: `watching_that_cannot_start_is_reported_and_leaves_nothing_watched` in `app/src/workspace/tests/notices.rs`
 
+Scenario 9: **A change report while lines are picked**
+
+- Given: lines of a diff are picked and the file's diff has not changed
+- When: the repository is read again because of a change report
+- Then: the picked lines stay picked and can be staged
+- Test: `a_change_report_that_leaves_the_diff_alone_keeps_the_picked_lines`
+
+Scenario 10: **A change report that changes the diff**
+
+- Given: lines of a diff are picked
+- When: the file changes and the repository is read again
+- Then: the picks are dropped, because they point at lines that moved
+- Test: `a_change_report_that_changes_the_diff_drops_the_picked_lines`
+
 ### User Story 2: Refresh by hand
 
 - As: a user
