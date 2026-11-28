@@ -61,4 +61,4 @@ Naran has six parts. "Outside" is the side closest to the user, so a feature is 
 - Comments and docs are English, short, and say why.
 - Python scripts have the same shape (checked by `python`): a function has at most five lines of code, and a longer one is split by extracting methods.
 - Write code that reads like the code around it.
-- Do not commit unless asked.
+- Do not commit unless asked. When asked, use the `git-commit` skill: its rules are mandatory.
