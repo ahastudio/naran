@@ -37,9 +37,8 @@ struct Root {
     path: PathBuf,
     /// The folder given to the watcher; not `path` for a worktree's folder.
     watched: PathBuf,
-    /// The path with symbolic links resolved. File events arrive with
-    /// resolved paths (on macOS `/var` becomes `/private/var`, and a linked
-    /// work folder becomes its target), so matching uses this one.
+    /// The path with links resolved. Events carry this or `watched`, so
+    /// matching accepts both.
     resolved: PathBuf,
     ignore: Gitignore,
 }
@@ -150,10 +149,8 @@ fn add_linked(roots: &Mutex<Vec<Root>>, root: Root, add: impl FnOnce() -> bool) 
 }
 
 /// Registers `path` as a root once `add` has started watching it.
-///
-/// The lock must not be held while `add` runs. notify waits for its event
-/// thread while it adds a path, and that thread waits for the lock in `route`
-/// whenever a file event arrives: holding it hangs both for good.
+/// The lock must not be held while `add` runs: notify waits for its event
+/// thread, which waits for the lock in `route`, and both would hang.
 fn add_root(roots: &Mutex<Vec<Root>>, path: &Path, add: impl FnOnce() -> bool) {
     if locked(roots).iter().any(|root| root.path == path) {
         return;
@@ -180,7 +177,7 @@ fn send_roots(roots: &[Root], sender: &mpsc::Sender<PathBuf>, paths: &[PathBuf])
 
 /// The watched repository a changed path belongs to, when the change matters.
 fn root_of<'a>(roots: &'a [Root], path: &Path) -> Option<&'a Root> {
-    let root = roots.iter().find(|root| path.starts_with(&root.resolved))?;
+    let root = roots.iter().find(|root| relative(root, path).is_some())?;
     is_relevant(root, path).then_some(root)
 }
 
@@ -207,8 +204,8 @@ fn file_watcher(
     })
 }
 
-/// Reports every repository again at `SAFETY_NET`, until nobody listens or
-/// `stop` is dropped along with `Watching`.
+/// Reports every repository again at `SAFETY_NET`, until nobody listens
+/// or `stop` is dropped.
 struct Ticking {
     roots: Arc<Mutex<Vec<Root>>>,
     sender: mpsc::Sender<PathBuf>,
@@ -246,8 +243,14 @@ fn locked(roots: &Mutex<Vec<Root>>) -> MutexGuard<'_, Vec<Root>> {
     roots.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+/// `path` inside the folder, as registered or with links resolved.
+fn relative<'a>(root: &Root, path: &'a Path) -> Option<&'a Path> {
+    let resolved = path.strip_prefix(&root.resolved);
+    resolved.or_else(|_| path.strip_prefix(&root.watched)).ok()
+}
+
 fn is_relevant(root: &Root, path: &Path) -> bool {
-    let Ok(relative) = path.strip_prefix(&root.resolved) else {
+    let Some(relative) = relative(root, path) else {
         return false;
     };
     let mut components = relative.components();

@@ -176,4 +176,4 @@ cargo test --workspace
 ### Compatibility
 
 - The watcher uses the platform's recommended file watching.
-- Comments in `app/src/watcher.rs` explain why matching uses resolved paths (on macOS `/var` becomes `/private/var`).
+- Comments in `app/src/watcher.rs` explain why matching accepts both the registered and the resolved path (on macOS `/var` becomes `/private/var`).
